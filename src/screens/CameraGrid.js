@@ -67,6 +67,7 @@ import {
   setFilePublic,
   uploadFilesToPhotoMedFolder,
   getImageDetailsById,
+  generateUniqueKey,
 } from "../configs/api";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -92,6 +93,7 @@ const CameraGrid = (props) => {
   const [activeZoom, setActiveZoom] = useState(false);
   const [activeAspectRatio, setActiveAspectRatio] = useState("");
   const [visible, setIsVisible] = useState(false);
+  const [loacalImageArr, setLocalImageArr] = useState([]);
   const patientId = useSelector((state) => state.auth.patientId.patientId);
   const patientFullId = useSelector(
     (state) => state.patient?.currentActivePatient?._id
@@ -179,88 +181,183 @@ const CameraGrid = (props) => {
     }
   };
 
-  const _chooseFile = async (image) => {
-    // console.log('Captured image for upload:', image);
-    try {
-      if (!image) {
-        console.error("No image provided for upload");
-        return;
+  // const _chooseFile = async (image) => {
+  //   // console.log('Captured image for upload:', image);
+  //   try {
+  //     if (!image) {
+  //       console.error("No image provided for upload");
+  //       return;
+  //     }
+
+  //     setLoading(true);
+
+  //     const fileDetails = [
+  //       {
+  //         uri: image.path,
+  //         type: "image/jpeg", // Adjust based on actual image type if needed
+  //         name: `${patientName}${Date.now()}.jpg`,
+  //       },
+  //     ];
+
+  //     if (provider == "google") {
+  //       await checkAndRefreshGoogleAccessToken(accessToken);
+  //       const patientInfo = {
+  //         patientId,
+  //         patientName,
+  //       };
+  //       const uploadedFileIds = await uploadFilesToPhotoMedFolder(
+  //         fileDetails,
+  //         patientInfo,
+  //         accessToken
+  //       );
+  //       const uploadedImages = await Promise.all(
+  //         uploadedFileIds.map(async (fileId) => {
+  //           const image = await getImageDetailsById(fileId, accessToken);
+  //           const publicUrl = await setFilePublic(fileId, accessToken);
+  //           return {
+  //             ...image,
+  //             publicUrl,
+  //           };
+  //         })
+  //       );
+  //       let imgss = [...images, ...uploadedImages];
+  //       setImages((prevImages) => [...prevImages, ...uploadedImages]);
+  //       setCapturedImages((prevImages) => [...prevImages, ...uploadedImages]);
+  //       dispatch(setPatientImages(imgss));
+  //       saveImageCount(imgss?.length || 0);
+  //       if (ghostImage) {
+  //         setIsVisible(true);
+  //       }
+  //     } else {
+  //       let result = await uploadFileToDropbox({
+  //         file: fileDetails[0],
+  //         userId: patientName + patientId,
+  //         accessToken,
+  //       }).unwrap();
+
+  //       const publicUrl = await getDropboxFileUrl(
+  //         result.path_display,
+  //         accessToken
+  //       );
+  //       result = { ...result, publicUrl };
+  //       setImageUrls((prevImages) => [...prevImages, result]);
+  //       setCapturedImages((prevImages) => [result, ...prevImages]);
+
+  //       let imgss = [result, ...imageUrls];
+  //       saveImageCount(imgss.length || 0);
+
+  //       if (ghostImage) {
+  //         setIsVisible(true);
+  //       }
+  //     }
+  //     setLoading(false);
+  //   } catch (error) {
+  //     setLoading(false);
+  //     console.error("Error in uploading image:", error);
+  //   }
+  // };
+
+
+  const capturePhoto = async () => {
+    // setLoading(true);
+    if (loacalImageArr.length >= 5) return false
+    if (cameraRef.current !== null) {
+      let photo = await cameraRef.current.takePhoto({
+        quality: 0.5, // Reduce quality (0.0 to 1.0)
+        skipMetadata: true, // Optional: reduces file size by skipping metadata
+      });
+      setImageSource(photo.path);
+      if (!photo.path.startsWith('file://')) {
+        photo.path = `file://${photo.path}`;
       }
-
-      setLoading(true);
-   
-      const fileDetails = [
-        {
-          uri: image.path,
-          type: "image/jpeg", // Adjust based on actual image type if needed
-          name: `${patientName}${Date.now()}.jpg`,
-        },
-      ];
-      
-      if (provider == "google") {
-        let vailidToken = await checkAndRefreshGoogleAccessToken(accessToken);
-        const patientInfo = {
-          patientId,
-          patientName,
-        };
-        const uploadedFileIds = await uploadFilesToPhotoMedFolder(
-          fileDetails,
-          patientInfo,
-          accessToken
-        );
-        const uploadedImages = await Promise.all(
-          uploadedFileIds.map(async (fileId) => {
-            const image = await getImageDetailsById(fileId, accessToken);
-            const publicUrl = await setFilePublic(fileId, accessToken);
-            return {
-              ...image,
-              publicUrl,
-            };
-          })
-        );
-        let imgss = [...images, ...uploadedImages];
-        setImages((prevImages) => [...prevImages, ...uploadedImages]);
-        setCapturedImages((prevImages) => [...prevImages, ...uploadedImages]);
-        dispatch(setPatientImages(imgss));
-        saveImageCount(imgss?.length || 0);
-        if (ghostImage) {
-          setIsVisible(true);
-        }
-      } else {
-        let result = await uploadFileToDropbox({
-          file: fileDetails[0],
-          userId: patientName + patientId,
-          accessToken,
-        }).unwrap();
-
-        const publicUrl = await getDropboxFileUrl(
-          result.path_display,
-          accessToken
-        );
-        result = { ...result, publicUrl };
-        setImageUrls((prevImages) => [...prevImages, result]);
-        setCapturedImages((prevImages) => [result, ...prevImages]);
-
-        let imgss = [result, ...imageUrls];
-        saveImageCount(imgss.length || 0);
-
-        if (ghostImage) {
-          setIsVisible(true);
-        }
-      }
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      console.error("Error in uploading image:", error);
+      setLocalImageArr((prevImages) => [photo, ...prevImages]);
+      // console.log('image photo log', photo);
+      // _chooseFile(photo);
     }
   };
 
+  useEffect(() => {
+    if (capturedImages.length>0 && capturedImages.length == loacalImageArr.length) {
+      navigate(ScreenName.IMAGE_VIEWER, {
+        preData: capturedImages,
+        ScreenName: "camera",
+      });
+      setLocalImageArr([])
+    }
+  }, [capturedImages]);
+  const _chooseFile = async () => {
+    try {
+      // let result = await uploadFileToDropbox({
+      //   file: fileDetails[0],
+      //   userId: patientName + patientId,
+      //   accessToken,
+      // }).unwrap();
+
+      // const publicUrl = await getDropboxFileUrl(
+      //   result.path_display,
+      //   accessToken
+      // );
+
+      setLoading(true)
+      console.log('loacalImageArr length', loacalImageArr.length)
+      for (let file of loacalImageArr) {
+        let uniqueKey = generateUniqueKey();
+        let imageName = `${patientName}_${uniqueKey}.jpg`;
+        console.log('file--file', file)
+
+        const fileDetails = {
+          uri: file.path,
+          type: "image/jpeg", // Adjust based on actual image type if needed
+          name: imageName,
+        }
+
+        let result = await uploadFileToDropbox({
+          file: fileDetails,
+          userId: patientName + patientId,
+          accessToken,
+        }).unwrap();
+        // Ensures the promise resolves properly
+        let publicUrl = await getDropboxFileUrl(
+          result.path_display,
+          accessToken
+        );
+        console.log('publicUrl--', publicUrl);
+
+        result = { ...result, publicUrl };
+        console.log('resultresult--', result);
+        setImageUrls((prevImages) => [...prevImages, result]);
+        setCapturedImages((prev) => [result, ...prev]);
+        let imgss = [result, ...imageUrls];
+        console.log('imgssimgss--', imgss);
+        saveImageCount(imgss.length || 0);
+
+      }
+
+      console.log('capturedImagescapturedImages', capturedImages);
+      console.log('imageUrlsimageUrls', imageUrls);
+
+      setLoading(false)
+      // setTimeout(() => {
+      //   navigate(ScreenName.IMAGE_VIEWER, {
+      //     preData: capturedImages,
+      //     ScreenName: "camera",
+      //   });
+      //   // setLocalImageArr([])
+      // }, 250);
+
+
+
+    } catch (error) {
+      console.log('verrorerror', error);
+
+    }
+  }
   const gridData = [
     { id: 1, icon: Grid33, message: "Grid 3x3" },
     { id: 2, icon: Grid44, message: "Grid 4x4" },
     { id: 3, icon: GridBorder, message: "No Grid" },
   ];
-  
+
 
   const bodyData = [
     {
@@ -494,15 +591,6 @@ const CameraGrid = (props) => {
     return category ? category.data : [];
   };
 
-  const capturePhoto = async () => {
-    setLoading(true);
-    if (cameraRef.current !== null) {
-      const photo = await cameraRef.current.takePhoto({});
-      setImageSource(photo.path);
-      // console.log('image photo log', photo);
-      _chooseFile(photo);
-    }
-  };
 
   const onPressCollage = async () => {
     setIsVisible(false);
@@ -519,6 +607,8 @@ const CameraGrid = (props) => {
       navigate(ScreenName.COLLAGE_ADD, { images: updatedImages });
     }
   };
+
+
 
   return (
     <WrapperContainer wrapperStyle={{ flex: 1 }}>
@@ -585,6 +675,28 @@ const CameraGrid = (props) => {
       )}
       {/* Footer View */}
       <View style={{ marginBottom: 10 }}>
+
+        {
+          loacalImageArr.length > 0 && <View style={{ flexDirection: "row", justifyContent: 'center' }}>
+            {
+              loacalImageArr.map((item, index) => {
+                console.log('itemitem', item)
+                return <Image
+                  style={{
+                    height: 30,
+                    width: 30,
+                    borderRadius: 5,
+                    marginHorizontal: 6
+                  }}
+                  source={{
+                    uri: item.path,
+                  }}
+                />
+              })
+
+            }
+          </View>
+        }
         {activeAspectRatio && (
           <View style={[styles.controls]}>
             <TouchableOpacity
@@ -670,38 +782,30 @@ const CameraGrid = (props) => {
           <TouchableOpacity
             disabled={imageSource?.length < 1 ? true : false}
             onPress={() => {
-              capturedImages?.length &&
-                navigate(ScreenName.IMAGE_VIEWER, {
-                  preData: capturedImages,
-                  ScreenName: "camera",
-                });
+              loacalImageArr?.length &&
+                _chooseFile()
+              //   navigate(ScreenName.IMAGE_VIEWER, {
+              //     preData: capturedImages,
+              //     ScreenName: "camera",
+              //   });
             }}
             style={[styles.actionBtn, { height: 42, width: 42 }]}
           >
-            <View style={styles.count}>
-              <Text
-                style={{
-                  fontSize: 6,
-                  fontFamily: FONTS.medium,
-                  color: COLORS.whiteColor,
-                }}
-              >
-                {capturedImages?.length}
-              </Text>
-            </View>
-            {imageSource !== "" ? (
-              <Image
-                style={{
-                  height: 28,
-                  width: 28,
-                }}
-                source={{
-                  uri: `file://'${imageSource}`,
-                }}
-              />
-            ) : (
-              <GalleryIcon />
-            )}
+
+            <Image
+              style={{
+                height: 42, width: 42, borderRadius: 10, zIndex: 10
+              }}
+              source={{
+                uri: `file://'${imageSource}`,
+              }}
+            />
+            <Image
+              style={{
+                height: 22, width: 22, borderRadius: 8, position: 'absolute', zIndex: 999
+              }}
+              source={require(`../assets/images/upload_arrow.png`)}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => capturePhoto()}

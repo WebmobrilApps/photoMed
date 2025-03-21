@@ -483,15 +483,15 @@ export const commonApi = createApi({
       providesTags: (result, error, { userId }) =>
         result
           ? [
-              ...result.map(({ id }) => ({ type: "Images", id })),
-              { type: "Images", id: "LIST" },
-            ]
+            ...result.map(({ id }) => ({ type: "Images", id })),
+            { type: "Images", id: "LIST" },
+          ]
           : [{ type: "Images", id: "LIST" }],
     }),
 
     uploadFileToDropbox: builder.mutation({
       async queryFn(
-        { file, userId, accessToken ,imageName},
+        { file, userId, accessToken, imageName },
         queryApi,
         extraOptions,
         baseQuery
@@ -582,9 +582,11 @@ export const commonApi = createApi({
         baseQuery
       ) {
         try {
-          const { uri, name } = file;
+          let { uri, name } = file;
           console.log("uri-----", uri);
-
+          if (!uri.startsWith('file://')) {
+            uri = `file://${uri}`;
+          }
           const path = `/PhotoMed/${userId}/All Images/${name}`;
           const fileData = await fetch(uri);
           const blob = await fileData.blob();
@@ -688,12 +690,12 @@ export const commonApi = createApi({
       providesTags: (result) =>
         result?.ResponseBody?.notifications
           ? [
-              ...result.ResponseBody.notifications.map(({ _id }) => ({
-                type: "Notification",
-                id: _id,
-              })),
-              { type: "Notification", id: "LIST" },
-            ]
+            ...result.ResponseBody.notifications.map(({ _id }) => ({
+              type: "Notification",
+              id: _id,
+            })),
+            { type: "Notification", id: "LIST" },
+          ]
           : [{ type: "Notification", id: "LIST" }],
     }),
     deleteNotification: builder.mutation({
@@ -761,7 +763,7 @@ export const commonApi = createApi({
     }),
 
     postPatientTags: builder.mutation({
-      query: ({ token, tags ,patientId}) => ({
+      query: ({ token, tags, patientId }) => ({
         url: `addtags/${patientId}`,
         method: "POST",
         headers: {
