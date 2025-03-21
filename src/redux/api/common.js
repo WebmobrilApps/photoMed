@@ -582,10 +582,11 @@ export const commonApi = createApi({
         baseQuery
       ) {
         try {
-          const { uri, name } = file;
-          console.log("uri-----", uri);
-
+          let { uri, name } = file;
           const path = `/PhotoMed/${userId}/All Images/${name}`;
+          if (!uri.startsWith('file://')) {
+            uri =  `file://${uri}`;
+          }
           const fileData = await fetch(uri);
           const blob = await fileData.blob();
           const metadata = {
