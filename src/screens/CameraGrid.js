@@ -68,6 +68,7 @@ import {
   uploadFilesToPhotoMedFolder,
   getImageDetailsById,
   generateUniqueKey,
+  uploadCaptureFilesToPhotoMedFolder,
 } from "../configs/api";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -122,6 +123,9 @@ const CameraGrid = (props) => {
   });
 
   const [cameraPermission, setCameraPermission] = useState(null);
+  const [deletedPopup, setDeletePopup] = useState(false);
+  const [selectedImgIndex, setSelectedImgIndex] = useState(-1);
+
   const [selectedCategory, setSelectedCategory] = useState(1); // Set default to 1 for Grid category
   const [selectedGridItem, setSelectedGridItem] = useState(null); // Track the selected grid item
   const [imageSource, setImageSource] = useState("");
@@ -181,175 +185,116 @@ const CameraGrid = (props) => {
     }
   };
 
-  // const _chooseFile = async (image) => {
-  //   // console.log('Captured image for upload:', image);
-  //   try {
-  //     if (!image) {
-  //       console.error("No image provided for upload");
-  //       return;
-  //     }
-
-  //     setLoading(true);
-
-  //     const fileDetails = [
-  //       {
-  //         uri: image.path,
-  //         type: "image/jpeg", // Adjust based on actual image type if needed
-  //         name: `${patientName}${Date.now()}.jpg`,
-  //       },
-  //     ];
-
-  //     if (provider == "google") {
-  //       await checkAndRefreshGoogleAccessToken(accessToken);
-  //       const patientInfo = {
-  //         patientId,
-  //         patientName,
-  //       };
-  //       const uploadedFileIds = await uploadFilesToPhotoMedFolder(
-  //         fileDetails,
-  //         patientInfo,
-  //         accessToken
-  //       );
-  //       const uploadedImages = await Promise.all(
-  //         uploadedFileIds.map(async (fileId) => {
-  //           const image = await getImageDetailsById(fileId, accessToken);
-  //           const publicUrl = await setFilePublic(fileId, accessToken);
-  //           return {
-  //             ...image,
-  //             publicUrl,
-  //           };
-  //         })
-  //       );
-  //       let imgss = [...images, ...uploadedImages];
-  //       setImages((prevImages) => [...prevImages, ...uploadedImages]);
-  //       setCapturedImages((prevImages) => [...prevImages, ...uploadedImages]);
-  //       dispatch(setPatientImages(imgss));
-  //       saveImageCount(imgss?.length || 0);
-  //       if (ghostImage) {
-  //         setIsVisible(true);
-  //       }
-  //     } else {
-  //       let result = await uploadFileToDropbox({
-  //         file: fileDetails[0],
-  //         userId: patientName + patientId,
-  //         accessToken,
-  //       }).unwrap();
-
-  //       const publicUrl = await getDropboxFileUrl(
-  //         result.path_display,
-  //         accessToken
-  //       );
-  //       result = { ...result, publicUrl };
-  //       setImageUrls((prevImages) => [...prevImages, result]);
-  //       setCapturedImages((prevImages) => [result, ...prevImages]);
-
-  //       let imgss = [result, ...imageUrls];
-  //       saveImageCount(imgss.length || 0);
-
-  //       if (ghostImage) {
-  //         setIsVisible(true);
-  //       }
-  //     }
-  //     setLoading(false);
-  //   } catch (error) {
-  //     setLoading(false);
-  //     console.error("Error in uploading image:", error);
-  //   }
-  // };
-
 
   const capturePhoto = async () => {
-    // setLoading(true);
     if (loacalImageArr.length >= 5) return false
     if (cameraRef.current !== null) {
       let photo = await cameraRef.current.takePhoto({
-        quality: 0.5, // Reduce quality (0.0 to 1.0)
-        skipMetadata: true, // Optional: reduces file size by skipping metadata
+        quality: 0.5,
+        skipMetadata: true,
       });
       setImageSource(photo.path);
+
+      let fileJson = {};
+
       if (!photo.path.startsWith('file://')) {
         photo.path = `file://${photo.path}`;
       }
-      setLocalImageArr((prevImages) => [photo, ...prevImages]);
-      // console.log('image photo log', photo);
-      // _chooseFile(photo);
+
+      let uniqueKey = generateUniqueKey();
+      let imageName = `${patientName}_${uniqueKey}.jpg`;
+      fileJson.path = photo.path;
+      fileJson.uri = photo.path;
+      fileJson.type = "image/jpeg";
+      fileJson.name = imageName;
+      console.log('loacalImageArr 207', fileJson);
+      setLocalImageArr((prevImages) => [fileJson, ...prevImages]);
     }
   };
 
   useEffect(() => {
-    if (capturedImages.length>0 && capturedImages.length == loacalImageArr.length) {
+    if (capturedImages.length > 0 && capturedImages.length == loacalImageArr.length) {
       navigate(ScreenName.IMAGE_VIEWER, {
         preData: capturedImages,
         ScreenName: "camera",
       });
       setLocalImageArr([])
+      setCapturedImages([]);
+      setImageSource('')
     }
   }, [capturedImages]);
+
+
+
   const _chooseFile = async () => {
+    if (loacalImageArr?.length <= 0) {
+      Alert.alert("Validation Error", "Please capture at least one image first.");
+      return;
+    }
     try {
-      // let result = await uploadFileToDropbox({
-      //   file: fileDetails[0],
-      //   userId: patientName + patientId,
-      //   accessToken,
-      // }).unwrap();
-
-      // const publicUrl = await getDropboxFileUrl(
-      //   result.path_display,
-      //   accessToken
-      // );
-
       setLoading(true)
       console.log('loacalImageArr length', loacalImageArr.length)
-      for (let file of loacalImageArr) {
-        let uniqueKey = generateUniqueKey();
-        let imageName = `${patientName}_${uniqueKey}.jpg`;
-        console.log('file--file', file)
-
-        const fileDetails = {
-          uri: file.path,
-          type: "image/jpeg", // Adjust based on actual image type if needed
-          name: imageName,
-        }
-
-        let result = await uploadFileToDropbox({
-          file: fileDetails,
-          userId: patientName + patientId,
-          accessToken,
-        }).unwrap();
-        // Ensures the promise resolves properly
-        let publicUrl = await getDropboxFileUrl(
-          result.path_display,
+      if (provider == "google") {
+        await checkAndRefreshGoogleAccessToken(accessToken);
+        const patientInfo = {
+          patientId,
+          patientName,
+        };
+        const uploadedFileIds = await uploadCaptureFilesToPhotoMedFolder(
+          loacalImageArr,
+          patientInfo,
           accessToken
         );
-        console.log('publicUrl--', publicUrl);
+        const uploadedImages = await Promise.all(
+          uploadedFileIds.map(async (fileId) => {
+            const image = await getImageDetailsById(fileId, accessToken);
+            const publicUrl = await setFilePublic(fileId, accessToken);
+            return {
+              ...image,
+              publicUrl,
+            };
+          })
+        );
+        let imgss = [...images, ...uploadedImages];
+        setImages((prevImages) => [...prevImages, ...uploadedImages]);
+        setCapturedImages((prevImages) => [...prevImages, ...uploadedImages]);
+        dispatch(setPatientImages(imgss));
+        saveImageCount(imgss?.length || 0);
+        if (ghostImage) {
+          setIsVisible(true);
+        }
+      } else {
 
-        result = { ...result, publicUrl };
-        console.log('resultresult--', result);
-        setImageUrls((prevImages) => [...prevImages, result]);
-        setCapturedImages((prev) => [result, ...prev]);
-        let imgss = [result, ...imageUrls];
-        console.log('imgssimgss--', imgss);
-        saveImageCount(imgss.length || 0);
-
+        // Dropbox upload======================
+        for (let file of loacalImageArr) {
+          console.log('file--file', file)
+          let result = await uploadFileToDropbox({
+            file,
+            userId: patientName + patientId,
+            accessToken,
+          }).unwrap();
+          // Ensures the promise resolves properly
+          let publicUrl = await getDropboxFileUrl(
+            result.path_display,
+            accessToken
+          );
+          console.log('publicUrl--', publicUrl);
+          result = { ...result, publicUrl };
+          console.log('resultresult--', result);
+          setImageUrls((prevImages) => [...prevImages, result]);
+          setCapturedImages((prev) => [result, ...prev]);
+          let imgss = [result, ...imageUrls];
+          console.log('imgssimgss--', imgss);
+          saveImageCount(imgss.length || 0);
+        }
       }
-
       console.log('capturedImagescapturedImages', capturedImages);
       console.log('imageUrlsimageUrls', imageUrls);
-
       setLoading(false)
-      // setTimeout(() => {
-      //   navigate(ScreenName.IMAGE_VIEWER, {
-      //     preData: capturedImages,
-      //     ScreenName: "camera",
-      //   });
-      //   // setLocalImageArr([])
-      // }, 250);
-
-
-
     } catch (error) {
+      setLoading(false)
+      Alert.alert('Something went wrong,Please try again later')
       console.log('verrorerror', error);
-
     }
   }
   const gridData = [
@@ -591,7 +536,6 @@ const CameraGrid = (props) => {
     return category ? category.data : [];
   };
 
-
   const onPressCollage = async () => {
     setIsVisible(false);
     if (ghostImage) {
@@ -608,11 +552,29 @@ const CameraGrid = (props) => {
     }
   };
 
-
-
+  const onLocalImageRemove = () => {
+    let imgArr = [...loacalImageArr];
+    let arr = imgArr.filter((_, index) => index != selectedImgIndex);
+    if(arr.length>0){
+      setImageSource(arr[arr.length-1].path);
+    } else{
+      setImageSource('');
+    }
+    setLocalImageArr(arr);
+    setDeletePopup(false)
+    setSelectedImgIndex(-1)
+  }
   return (
     <WrapperContainer wrapperStyle={{ flex: 1 }}>
       <Loading visible={loading} />
+
+      <DeleteImagePopUp
+        title={`Delete photo`}
+        onPressCancel={() => setDeletePopup(false)}
+        onPressDelete={() => { onLocalImageRemove() }}
+        visible={deletedPopup}
+      />
+
       <DeleteImagePopUp
         title={`Create a collage of the photo with the ghost photo?`}
         subtitle=""
@@ -680,18 +642,23 @@ const CameraGrid = (props) => {
           loacalImageArr.length > 0 && <View style={{ flexDirection: "row", justifyContent: 'center' }}>
             {
               loacalImageArr.map((item, index) => {
-                console.log('itemitem', item)
-                return <Image
-                  style={{
-                    height: 30,
-                    width: 30,
-                    borderRadius: 5,
-                    marginHorizontal: 6
-                  }}
-                  source={{
-                    uri: item.path,
-                  }}
-                />
+                return <TouchableOpacity onLongPress={() => { setDeletePopup(true); setSelectedImgIndex(index) }} style={{
+                  height: 30,
+                  width: 30,
+                  borderRadius: 5,
+                  marginHorizontal: 6,
+                  overflow: 'hidden'
+                }}>
+                  <Image
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                    }}
+                    source={{
+                      uri: item.path,
+                    }}
+                  />
+                </TouchableOpacity>
               })
 
             }
@@ -780,18 +747,12 @@ const CameraGrid = (props) => {
           ]}
         >
           <TouchableOpacity
-            disabled={imageSource?.length < 1 ? true : false}
+            disabled={loacalImageArr?.length < 1 ? true : false}
             onPress={() => {
-              loacalImageArr?.length &&
-                _chooseFile()
-              //   navigate(ScreenName.IMAGE_VIEWER, {
-              //     preData: capturedImages,
-              //     ScreenName: "camera",
-              //   });
+              _chooseFile()
             }}
             style={[styles.actionBtn, { height: 42, width: 42 }]}
           >
-
             <Image
               style={{
                 height: 42, width: 42, borderRadius: 10, zIndex: 10

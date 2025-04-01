@@ -28,7 +28,8 @@ const SignUp = () => {
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [terms, setTerms] = useState(false)
-
+    const [passwordVisibility, setpasswordVisibility] = useState(true);
+    const [cpasswordVisibility, setcpasswordVisibility] = useState(true);
     const toggleTerms = (terms) => {
         setTerms(terms)
     }
@@ -92,26 +93,26 @@ const SignUp = () => {
 
     const getPlatformValue = () => {
         if (Platform.OS === 'android') {
-          return 1; // For Android
+            return 1; // For Android
         } else {
-          return 2; // For iOS
+            return 2; // For iOS
         }
-      };
+    };
 
 
     const handleRegister = async () => {
         if (!validateFields()) return;
         // Proceed with API call or further actions
         try {
-            const device_type = getPlatformValue();        
+            const device_type = getPlatformValue();
             const device_id = await DeviceInfo.getUniqueId();
             const fcmToken = await getData('fcmToken')
-            const response = await signUpMutation({ full_name, email, password, mobile,device_type,device_id,fcmToken });
+            const response = await signUpMutation({ full_name, email, password, mobile, device_type, device_id, fcmToken });
             if (response.data?.succeeded) {
                 // Toast.show(`Your otp is : ${response.data.ResponseBody.otp}`);
-                navigate(ScreenName.OTP_VERIFICATION,{screenName:ScreenName.SIGN_UP,userToken:response.data.ResponseBody.token,email:email})
+                navigate(ScreenName.OTP_VERIFICATION, { screenName: ScreenName.SIGN_UP, userToken: response.data.ResponseBody.token, email: email })
                 // Handle successful registration logic
-            } else {                
+            } else {
                 Toast.show(response?.data?.ResponseMessage || 'Something went wrong');
             }
         } catch (error) {
@@ -155,26 +156,36 @@ const SignUp = () => {
                     value={password}
                     onChangeText={(txt) => setPassword(txt)}
                     placeholder={'Enter Password'}
+                    secureTextEntry={passwordVisibility}
                     leftIcon={imagePath.lock}
-                    rightIcon />
+                    toggleSecureTextEntry={() => {
+                        setpasswordVisibility(!passwordVisibility);
+                    }}
+                    rightIcon
+
+                />
                 <AppTextInput
                     value={confirmPassword}
+                    secureTextEntry={cpasswordVisibility}
                     onChangeText={(txt) => setConfirmPassword(txt)}
                     placeholder={'Re-enter Password'}
+                    toggleSecureTextEntry={() => {
+                        setcpasswordVisibility(!cpasswordVisibility);
+                    }}
                     leftIcon={imagePath.lock}
                     rightIcon />
                 <View
-                    style={[commonStyles.flexView, {alignSelf: 'flex-start',marginLeft:2,width:'100%',alignItems:'flex-start' }]}
+                    style={[commonStyles.flexView, { alignSelf: 'flex-start', marginLeft: 2, width: '100%', alignItems: 'flex-start' }]}
                 >
                     <TouchableOpacity onPress={() => toggleTerms(!terms)}
-                     style={styles.check}>
+                        style={styles.check}>
                         {terms && <Tick height={10} width={10} />}
                     </TouchableOpacity>
                     <Text style={styles.checkTxt}>By signing up you accept the{' '}
-                        <Text onPress={() => navigate(ScreenName.TERMS,{slug:'about-us',screenName:ScreenName.TERMS})}
-                        style={{ fontFamily: FONTS.medium, color: COLORS.primary }}>Terms and {'\n'}Conditions</Text>
-                        <Text onPress={() => navigate('Privacy Policy',{slug:'privacy-policy',screenName:'Privacy Policy'})}
-                        style={{ fontFamily: FONTS.medium, color: COLORS.primary }}> & Privacy Policy</Text>
+                        <Text onPress={() => navigate(ScreenName.TERMS, { slug: 'about-us', screenName: ScreenName.TERMS })}
+                            style={{ fontFamily: FONTS.medium, color: COLORS.primary }}>Terms and {'\n'}Conditions</Text>
+                        <Text onPress={() => navigate('Privacy Policy', { slug: 'privacy-policy', screenName: 'Privacy Policy' })}
+                            style={{ fontFamily: FONTS.medium, color: COLORS.primary }}> & Privacy Policy</Text>
                     </Text>
                 </View>
                 <CustomBtn onPress={handleRegister}
@@ -222,9 +233,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: moderateScale(10),
         backgroundColor: 'white'
-      },checkTxt:{
-        fontSize:14,
-        fontFamily:FONTS.regular,
-        color:COLORS.textColor
-      }
+    }, checkTxt: {
+        fontSize: 14,
+        fontFamily: FONTS.regular,
+        color: COLORS.textColor
+    }
 })

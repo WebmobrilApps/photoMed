@@ -292,6 +292,42 @@ export const safeCreateFolder = async (
     return null; // Return null to indicate failure without crashing the app
   }
 };
+export async function uploadCaptureFilesToPhotoMedFolder(
+  filePathArray,
+  patientInfo,
+  accessToken
+) {
+  try {
+    if (!filePathArray || !filePathArray.length) {
+      throw new Error("No files to upload");
+    }
+    const patientFolderName = patientInfo.patientName + patientInfo.patientId;
+    let allImagesFolderId = await safeCreateFolder(
+      `Photomed/${patientFolderName}/All Images`,
+      accessToken,
+      "root"
+    );
+    
+    if (!allImagesFolderId) {
+      throw new Error("Failed to upload file");
+    }
+    
+    const uploadPromises = filePathArray.map(async (file, index) => {
+      return uploadFileToDrive(
+        file,
+        allImagesFolderId,
+        accessToken,
+        file.name
+      );
+    });
+
+    const fileIds = await Promise.all(uploadPromises);
+    return fileIds;
+  } catch (error) {
+    // console.error('Failed to upload files:', error);
+    throw error;
+  }
+}
 
 export async function uploadFilesToPhotoMedFolder(
   filePathArray,
@@ -316,8 +352,7 @@ export async function uploadFilesToPhotoMedFolder(
       allImagesFolderId,
       accessToken
     );
-    let totalPImg =
-      uploadedImages && uploadedImages.length > 0 ? uploadedImages.length : 0;
+    let totalPImg = uploadedImages && uploadedImages.length > 0 ? uploadedImages.length : 0;
 
     // Step 4: Upload images to the "All Images" folder
     const uploadPromises = filePathArray.map(async (file, index) => {
@@ -337,13 +372,6 @@ export async function uploadFilesToPhotoMedFolder(
         accessToken,
         `${patientInfo.patientName}_${uniqueKey}.jpg`
       );
-      // return uploadImageToDrive123(
-      //   accessToken,
-      //   file,
-      //   allImagesFolderId,
-      //   patientInfo.patientName,
-      //   `${patientInfo.patientName}_${uniqueKey}.jpg`
-      // );
     });
     const fileIds = await Promise.all(uploadPromises);
     return fileIds;

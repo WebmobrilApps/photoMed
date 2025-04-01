@@ -575,18 +575,14 @@ export const commonApi = createApi({
     }),
 
     uploadSingleFileToDropbox: builder.mutation({
-      async queryFn(
-        { file, userId, accessToken },
-        queryApi,
-        extraOptions,
-        baseQuery
-      ) {
+      async queryFn({ file, userId, accessToken },) {
         try {
           let { uri, name } = file;
+
           console.log("uri-----", uri);
-          if (!uri.startsWith('file://')) {
-            uri = `file://${uri}`;
-          }
+          // if (!uri.startsWith('file://')) {
+          //   uri = `file://${uri}`;
+          // }
           const path = `/PhotoMed/${userId}/All Images/${name}`;
           const fileData = await fetch(uri);
           const blob = await fileData.blob();
