@@ -133,9 +133,9 @@ const EditPatient = (props) => {
             return false;
         }
 
-        
-         
-        if (email.trim()!="" && !validateEmail(email.trim())) {
+
+
+        if (email.trim() != "" && !validateEmail(email.trim())) {
             Toast.show('Please enter a valid email address');
             return false;
         }
@@ -237,9 +237,9 @@ const EditPatient = (props) => {
     const maxDate = useMemo(() => {
         return new Date()
     }, []);
-    
-    const onPhoneInputChange=(val)=>{
-        if(val && val?.length>0){
+
+    const onPhoneInputChange = (val) => {
+        if (val && val?.length > 0) {
             val = val.trim().split(' ').join('');
         }
         setPhone(val)
@@ -305,7 +305,7 @@ const EditPatient = (props) => {
                     <TouchableOpacity style={styles.datePickerBox} onPress={() => setDatePickerVisibility(true)}>
                         <Text style={{ color: COLORS.textColor, fontSize: 12, }}>{dob}</Text>
                     </TouchableOpacity>
-                  
+
                     <CountryPickerComp
                         isPickerOpen={isCountryPickerOpen}
                         closeCountryPicker={(val) => { setIsCountryPickerOpen(val) }}

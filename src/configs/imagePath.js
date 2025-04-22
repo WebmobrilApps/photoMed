@@ -27,7 +27,8 @@ addPatient:require('../assets/images/icons/addPatient.png'),
 notification:require('../assets/images/icons/notification.png'),
 userTab:require('../assets/images/icons/userTab.png'),
 bottomBg:require('../assets/images/bottomBg.png'),
-
+checkbox_unchecked: require('../assets/images/checkbox_unchecked.png'),
+checkbox_checked: require('../assets/images/checkbox_checked.png'),
 
 
 };

@@ -28,6 +28,8 @@ const imagePaths = {
     body_slight_right: require('./body/body_slight_right.png'),
     body_slight_left: require('./body/body_slight_left.png'),
 
+   
+
 
 
   }

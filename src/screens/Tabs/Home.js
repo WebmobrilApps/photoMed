@@ -157,7 +157,7 @@ const Home = () => {
         }
       );
       const pData = await pDataRes.json();
-      console.log("pDatapData", pData);
+      console.log("pDatapData", JSON.stringify());
       setIsLoading(false);
       if (pData?.ResponseCode === 200 || pData?.ResponseCode === "200") {
         setPatients(pData);

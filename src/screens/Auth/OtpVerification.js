@@ -19,13 +19,13 @@ import FONTS from '../../styles/fonts'
 
 const OtpVerification = (props) => {
     const dispatch = useDispatch()
-    const [requestCodeMutation, { isLoading:loading }] = useRequestCodeMutation();
+    const [requestCodeMutation, { isLoading: loading }] = useRequestCodeMutation();
     const [token, setToken] = useState(props.route.params.userToken)
     const [verifyEmailMutation, { isLoading }] = useVerifyEmailMutation();
     const isConnected = useSelector((state) => state.network.isConnected);
     const preScreen = props.route.params.screenName
     const email = props.route.params.email
-    
+
     const [otpInput, setOtpInput] = useState("");
     const input = useRef(null);
     const [timer, setTimer] = useState(30);
@@ -33,9 +33,9 @@ const OtpVerification = (props) => {
 
     const clearInput = () => {
         if (input.current) {
-          input.current.clear();
+            input.current.clear();
         }
-      };
+    };
 
     useEffect(() => {
         let interval = null;
@@ -62,6 +62,7 @@ const OtpVerification = (props) => {
             if (response.data?.succeeded) {
                 Toast.show(response.data.ResponseMessage);
                 if (preScreen == ScreenName.SIGN_UP) {
+                    console.log('response.data',response.data);
                     dispatch(saveUserData(response.data.ResponseBody.token))
                 } else {
                     navigate(ScreenName.UPDATE_PASSWORD, { token: response.data.ResponseBody.token });
@@ -75,19 +76,19 @@ const OtpVerification = (props) => {
         }
     };
 
-    const handleResendOtp = async() => {
+    const handleResendOtp = async () => {
         if (canResend) {
             // Logic to resend the OTP (e.g., API call to resend OTP)
             if (!isConnected) {
                 Toast.show('No internet connection. Please try again.');
                 return;
             }
-    
+
             // Proceed with API call or further actions
             try {
                 const response = await requestCodeMutation({ email });
                 // console.log('resend mail resss',response);
-                
+
                 if (response.data?.succeeded) {
                     setTimer(30);
                     setCanResend(false);
@@ -102,7 +103,7 @@ const OtpVerification = (props) => {
                 }
             } catch (error) {
                 console.error('Registration Error:', error);
-            }            
+            }
         }
     };
 
@@ -130,13 +131,13 @@ const OtpVerification = (props) => {
                     />
                 </View>
                 <Text style={[commonStyles.authSbTitleStyle, { alignSelf: 'flex-end', marginRight: 28, marginTop: 10 }]}>
-                    Didn't receive an OTP?{' '}
+                    Didn't receive an Code?{' '}
                     <Text onPress={handleResendOtp} style={{ fontFamily: FONTS.bold, textDecorationLine: 'underline', color: canResend ? COLORS.primary : COLORS.gray }}>
-                        {canResend ? 'Resend OTP' : `Resend in ${timer}s`}
+                        {canResend ? 'Resend Code' : `Resend in ${timer}s`}
                     </Text>
                 </Text>
                 <CustomBtn onPress={handleVerifyEmail}
-                    title={'Verify OTP'} btnStyle={{ marginTop: verticalScale(130), width: '85%' }} />
+                    title={'Verify Code'} btnStyle={{ marginTop: verticalScale(130), width: '85%' }} />
             </KeyboardAwareScrollView>
         </WrapperContainer>
     )

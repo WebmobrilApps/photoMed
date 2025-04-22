@@ -9,7 +9,7 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import WrapperContainer from "../components/WrapperContainer";
 import commonStyles from "../styles/commonStyles";
-import { moderateScale, verticalScale } from "../styles/responsiveLayoute";
+import { height, moderateScale, verticalScale } from "../styles/responsiveLayoute";
 import { imagePath } from "../configs/imagePath";
 import CustomBtn from "../components/CustomBtn";
 import PatientImageList from "../components/PatientImageList";
@@ -59,7 +59,7 @@ const PatientDetails = (props) => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [images, setImages] = useState([]);
   const preData = props?.route?.params?.item;
-  
+
 
   const fullId = preData._id;
   const trimmedId = fullId.slice(0, 5);
@@ -105,27 +105,47 @@ const PatientDetails = (props) => {
   const [deleteFile, { isLoading: loaded, isError, isSuccess }] =
     useDeleteFileFromDropboxMutation();
 
-  const toggleImageSelection = (item) => {
-    const imagePath = provider === "google" ? item.id : item.path_display;
-    let newSelectedImages, newCollageImages;
-
-    if (selectedImages.includes(imagePath)) {
-      // Remove from both states
-      newSelectedImages = selectedImages.filter((img) => img !== imagePath);
-      newCollageImages = collageImages.filter(
-        (img) =>
-          (provider === "google" ? img.id : img.path_display) !== imagePath
-      );
-    } else {
-      // Add to both states
-      newSelectedImages = [...selectedImages, imagePath];
-      newCollageImages = [...collageImages, item];
-    }
-
-    setSelectedImages(newSelectedImages);
-    setCollageImage(newCollageImages);
-    setSelectionMode(newSelectedImages.length > 0);
-  };
+    const toggleImageSelection = (items, type = "default") => {
+      const isGoogle = provider === "google";
+      const getImagePath = (item) => (isGoogle ? item.id : item.path_display);
+    
+      let newSelectedImages = [...selectedImages];
+      let newCollageImages = [...collageImages];
+    
+      const shouldRemove = type === "removeall";
+    
+      items.forEach((item) => {
+        const imagePath = getImagePath(item);
+        const isSelected = newSelectedImages.includes(imagePath);
+    
+        if (type === "default") {
+          if (isSelected) {
+            newSelectedImages = newSelectedImages.filter((img) => img !== imagePath);
+            newCollageImages = newCollageImages.filter(
+              (img) => getImagePath(img) !== imagePath
+            );
+          } else {
+            newSelectedImages.push(imagePath);
+            newCollageImages.push(item);
+          }
+        } else {
+          if (shouldRemove) {
+            newSelectedImages = newSelectedImages.filter((img) => img !== imagePath);
+            newCollageImages = newCollageImages.filter((img) => getImagePath(img) !== imagePath);
+          } else {
+            if (!isSelected) {
+              newSelectedImages.push(imagePath);
+              newCollageImages.push(item);
+            }
+          }
+        }
+      });
+    
+      setSelectedImages(newSelectedImages);
+      setCollageImage(newCollageImages);
+      setSelectionMode(newSelectedImages.length > 0);
+    };
+    
 
   const saveCount = async (count) => {
     const id = preData._id;
@@ -167,7 +187,7 @@ const PatientDetails = (props) => {
     }
   };
 
-  
+
 
   const fetchGoogleDriveImages = async () => {
     try {
@@ -182,12 +202,17 @@ const PatientDetails = (props) => {
         return;
       }
 
+      console.log('photoMedFolderId', photoMedFolderId);
+
       // Step 2: Locate the patient folder inside "PhotoMed"
       const patientFolderId = await getFolderId(
         preData.full_name + trimmedId,
         accessToken,
         photoMedFolderId
       );
+
+      console.log('adsda----', preData.full_name + trimmedId, photoMedFolderId, accessToken, patientFolderId);
+
       if (!patientFolderId) {
         console.error("Patient folder not found");
         saveCount(publicImages?.length ? publicImages?.length : null);
@@ -342,7 +367,7 @@ const PatientDetails = (props) => {
   };
 
   // Separate function for Dropbox uploads
- 
+
   const handleDropboxUpload = async (files) => {
     try {
       const uploadPromises = files.map(async (file, index) => {
@@ -411,9 +436,10 @@ const PatientDetails = (props) => {
     }
   };
 
+  const activePatient = useSelector((state) => state.patient?.currentActivePatient);
   const getProfileImage = () => {
     if (patient?.profileImage) {
-      return configUrl.imageUrl + patient?.profileImage; // Existing profile image
+      return configUrl.imageUrl + activePatient?.profileImage; // Existing profile image
     }
     return configUrl.defaultUser; // Default image
   };
@@ -430,20 +456,21 @@ const PatientDetails = (props) => {
       toggleImageSelection(item);
     } else {
       navigate(ScreenName.IMAGE_VIEWER, {
-        preData: item,
+        preData: item[0],
         accessToken,
         ScreenName: "gallery",
         imageData: provider == "google" ? patientImages : imageUrls,
       });
     }
   };
-  const CommonComp = ({ IconComponent, title, onPress }) => {
+  
+  const CommonComp = ({ IconComponent, title, onPress, commonContainer = null, titleStyle = null }) => {
     return (
       <View style={{ justifyContent: "center", alignItems: "center" }}>
-        <TouchableOpacity onPress={onPress} style={styles.commonContainer}>
+        <TouchableOpacity onPress={onPress} style={[styles.commonContainer, commonContainer]}>
           {IconComponent && <IconComponent />}
         </TouchableOpacity>
-        <Text style={[styles.title, { fontSize: 10, color: COLORS.primary }]}>
+        <Text style={[styles.title, { fontSize: 10, color: COLORS.primary }, titleStyle]}>
           {title}
         </Text>
       </View>
@@ -451,7 +478,7 @@ const PatientDetails = (props) => {
   };
 
   return (
-    <WrapperContainer wrapperStyle={[commonStyles.innerContainer]}>
+    <WrapperContainer wrapperStyle={[{ padding: 15 }]}>
       <DeleteImagePopUp
         title={`Delete ${selectedImages.length} selected photo`}
         onPressCancel={() => setIsVisible(false)}
@@ -537,8 +564,8 @@ const PatientDetails = (props) => {
             handleImagePress={(item) => {
               handleImagePress(item);
             }}
-            toggleImageSelection={(item) => {
-              toggleImageSelection(item);
+            toggleImageSelection={(item,type='default') => {
+              toggleImageSelection(item,type);
             }}
           />
           <View style={styles.bottomBottonsWrapper}>
@@ -610,7 +637,7 @@ const PatientDetails = (props) => {
           <View
             style={[
               commonStyles.flexView,
-              { justifyContent: "space-around", width: "80%" },
+              { justifyContent: "space-around", width: "80%", marginTop: 20 },
             ]}
           >
             <CommonComp
@@ -621,15 +648,18 @@ const PatientDetails = (props) => {
               IconComponent={CollegeIcon}
             />
             <CommonComp
+              onPress={() => navigateCameraGrid()}
+              title={"Camera"}
+              commonContainer={{ height: 90, width: 90 }}
+              titleStyle={{ fontSize: 14 }}
+              IconComponent={AddCamera}
+            />
+            <CommonComp
               onPress={_chooseFile}
               title={"Import"}
               IconComponent={importIcon}
             />
-            <CommonComp
-              onPress={() => navigateCameraGrid()}
-              title={"Camera"}
-              IconComponent={AddCamera}
-            />
+
           </View>
         </View>
       )}

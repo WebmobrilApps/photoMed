@@ -120,8 +120,19 @@ export const commonApi = createApi({
     updatePatient: builder.mutation({
       query: (data) => {
         const formData = new FormData();
-        if (data?.updateType) {
+        if (data?.updateType=='count') {
           formData.append("imageCount", data.patientData.imageCount);
+        }else if(data?.updateType=='profile_pic'){
+
+          console.log('datadata update profile_pic',data);
+          console.log('datadata update profile_pic',data?.updateType);
+          
+
+          formData.append("profile", {
+            uri: data.patientData.data.uri,
+            name: data.patientData.data.name || "profile.jpg", // Provide a default name if fileName is unavailable
+            type: data.patientData.data.type || "image/jpeg", // Provide a default type if unavailable
+          });
         } else {
           formData.append("full_name", data.patientData.full_name);
           formData.append("dob", data.patientData.dob);

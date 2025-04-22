@@ -1,5 +1,5 @@
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React, { useState } from 'react';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
+import React, { useCallback, useState } from 'react';
 import WrapperContainer from '../../components/WrapperContainer';
 import { imagePath } from '../../configs/imagePath';
 import commonStyles from '../../styles/commonStyles';
@@ -9,12 +9,12 @@ import COLORS from '../../styles/colors';
 import FONTS from '../../styles/fonts';
 import CustomBtn from '../../components/CustomBtn';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ScreenName from '../../configs/screenName';
 import { navigate } from '../../navigators/NavigationService';
 import Loading from '../../components/Loading';
 import { useDispatch, useSelector } from 'react-redux';
-import { saveUserData } from '../../redux/slices/authSlice';
+import { saveUserData, setIsRemeberOn } from '../../redux/slices/authSlice';
 import { useLoginMutation } from '../../redux/api/user';
 import { validateEmail } from '../../components/Validation';
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -51,8 +51,28 @@ const Login = () => {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+    const [isRemeberMe, setIsRemeberMe] = useState(false);
 
 
+    useFocusEffect(
+        useCallback(() => {
+            checkRemeberMe()
+        }, [])
+    );
+    const isRemeberOn = useSelector((state) => state.auth.isRemeberOn);
+    const email1 = useSelector((state) => state.auth.email);
+    const password1 = useSelector((state) => state.auth.password);
+    const checkRemeberMe = () => {
+        if (isRemeberOn) {
+            setIsRemeberMe(true)
+            setEmail(email1)
+            setPassword(password1)
+        } else {
+            setIsRemeberMe(false)
+            setEmail('')
+            setPassword('')
+        }
+    }
     const togglePasswordVisibility = () => {
         setIsPasswordVisible(prev => !prev);
     };
@@ -82,13 +102,13 @@ const Login = () => {
     };
 
     const handleLogin = async () => {
-        const fcmToken = await getData('fcmToken')
+        const fcmToken = await getData('fcmToken');
         console.log('fcmToken', fcmToken);
 
         const device_type = getPlatformValue();
         const device_id = await DeviceInfo.getUniqueId();
         console.log('device_id', device_id);
-       
+        // setIsRemeberOn
         if (!isConnected) {
             Toast.show('No internet connection. Please try again.');
             return;
@@ -96,11 +116,24 @@ const Login = () => {
         if (!validateFields()) return;
         try {
             const loginApiResponse = await loginMutation({ email, password, device_id, device_type, fcmToken });
+            console.log('loginApiResponse', loginApiResponse);
+
             if (loginApiResponse.data?.succeeded) {
                 if (loginApiResponse.data.ResponseBody.is_verified == false) {
                     Toast.show(loginApiResponse.data.ResponseBody.otp);
                     navigate(ScreenName.OTP_VERIFICATION, { screenName: ScreenName.SIGN_UP, userToken: loginApiResponse.data.ResponseBody.token, email, email })
                 } else {
+                    if (isRemeberMe) {
+                        dispatch(setIsRemeberOn({
+                            isRemeberOn: true,
+                            email,
+                            password
+                        }))
+                    } else {
+                        dispatch(setIsRemeberOn({
+                            isRemeberOn: false,
+                        }))
+                    }
                     Toast.show(loginApiResponse.data.ResponseMessage);
                     dispatch(saveUserData(loginApiResponse.data.ResponseBody.token));
                 }
@@ -111,14 +144,14 @@ const Login = () => {
             console.error('Login API Error:', error);
         }
     };
- 
+
 
     const onGoogleButtonPress = async () => {
         try {
             const fcmToken = await getData('fcmToken')
             const device_type = getPlatformValue();
             const device_id = await DeviceInfo.getUniqueId();
-            
+
             await GoogleSignin.signOut();
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
             const data = await GoogleSignin.signIn();
@@ -163,8 +196,12 @@ const Login = () => {
                 <Image source={imagePath.logo} style={styles.logoStyle} />
                 <AppTextInput
                     value={email}
-                    keyboardType={'email-address'}
                     onChangeText={(txt) => setEmail(txt)}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    keyboardType="email-address"
                     placeholder="Email" leftIcon={imagePath.email} />
                 <AppTextInput
                     value={password}
@@ -172,9 +209,23 @@ const Login = () => {
                     toggleSecureTextEntry={togglePasswordVisibility}
                     onChangeText={(txt) => setPassword(txt)}
                     placeholder="Password" leftIcon={imagePath.lock} rightIcon />
-                <Text onPress={() => navigate(ScreenName.FORGOT_PASSWORD)} style={styles.frgtTxtStyle}>
-                    Forgot Password?
-                </Text>
+
+
+
+                <View style={{ flexDirection: "row", justifyContent: "space-between", width: '100%' }}>
+                    <TouchableOpacity onPress={() => { setIsRemeberMe(!isRemeberMe) }} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                        {<Image source={!isRemeberMe ? imagePath.checkbox_unchecked : imagePath.checkbox_checked} style={{ height: 12, width: 12, marginRight: 8 }} />}
+                        <Text style={styles.frgtTxtStyle}>
+                            Remember me?
+                        </Text>
+                    </TouchableOpacity>
+                    <Text onPress={() => navigate(ScreenName.FORGOT_PASSWORD)} style={styles.frgtTxtStyle}>
+                        Forgot Password?
+                    </Text>
+                </View>
+
+
+
                 <CustomBtn
                     onPress={handleLogin}
                     title="Login"
@@ -245,6 +296,7 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.regular,
         alignSelf: 'flex-end',
         textDecorationLine: 'underline',
+        textAlign: "right"
     },
     devider: {
         height: 1,

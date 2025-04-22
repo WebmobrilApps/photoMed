@@ -45,12 +45,12 @@ export async function getFolderId(
   parentFolderId = null
 ) {
   let query = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-
   // If a parent folder ID is provided, include it in the query
   if (parentFolderId) {
     query += ` and '${parentFolderId}' in parents`;
   }
-
+try {
+  
   const response = await fetch(
     `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
       query
@@ -63,7 +63,11 @@ export async function getFolderId(
   );
 
   const data = await response.json();
+  console.log('data---69',data);
   return data.files && data.files.length > 0 ? data.files[0].id : null;
+} catch (error) {
+  console.log('error---69',error);
+}
 }
 
 export async function createFolder(folderName, accessToken) {

@@ -5,6 +5,7 @@ import {
   Alert,
   TouchableOpacity,
   StyleSheet,
+  Platform,
 } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -17,13 +18,15 @@ import {
 import FONTS from "../styles/fonts";
 import COLORS from "../styles/colors";
 import Tick from "../assets/SvgIcons/Tick";
-
+import { imagePath } from "../configs/imagePath";
+import { Image } from "react-native";
+import moment from "moment"
 const PatientImageList = memo(
   ({ data, selectedImages, toggleImageSelection, handleImagePress }) => {
     const [imageArr, setImageArr] = useState([]);
     const provider = useSelector((state) => state?.auth?.cloudType);
 
-    console.log("patientImages", data);
+    console.log("Platform.isPad", Platform.isPad);
 
     useEffect(() => {
       if (data && data.length > 0) {
@@ -36,7 +39,7 @@ const PatientImageList = memo(
       const today = new Date();
       const yesterday = new Date();
       yesterday.setDate(today.getDate() - 1);
-   
+
       // Group items by date
       const groupedData = data.reduce((acc, item) => {
         const date =
@@ -71,22 +74,44 @@ const PatientImageList = memo(
         if (b.title === "Today") return 1;
         if (a.title === "Yesterday") return -1;
         if (b.title === "Yesterday") return 1;
-        return new Date(a.title) - new Date(b.title);
+        return moment(b.title).valueOf()  - moment(a.title).valueOf();
       });
+      
       //   Sort items within each group in descending order
       groupedData.forEach((group) => {
-        provider == "google"
-          ? group.data.sort(
-              (a, b) => new Date(b.createdTime) - new Date(a.createdTime)
-            )
-          : group.data.sort(
-              (a, b) =>
-                new Date(b.server_modified) - new Date(a.server_modified)
-            );
+        group.data.sort((a, b) => {
+          if (provider === "google") {
+            return moment(b.createdTime).valueOf() - moment(a.createdTime).valueOf(); // Descending
+          } else {
+            return moment(b.server_modified).valueOf() - moment(a.server_modified).valueOf(); // Descending
+          }
+        });
       });
 
       return groupedData;
     };
+
+    const onPresTitle = (item) => {
+      let isIdIncluded = checkAllIdsIncluded(item?.data, selectedImages)
+      if(isIdIncluded){
+        item?.data && item?.data?.length>0 && toggleImageSelection(item.data,'removeall')
+      }else{
+        item?.data && item?.data?.length>0 && toggleImageSelection(item.data,'addall')
+      }
+    }
+
+    // function checkAnyIdIncluded(data, validIds) {
+    //   const dataIds = data.map(item => item.id);
+    //   const anyIncluded = dataIds.some(id => validIds.includes(id));
+    //   return anyIncluded;
+    // }
+    function checkAllIdsIncluded(data, validIds) {
+      // Extract all ids from the data array
+      const dataIds = data.map(item => provider == "google" ? item.id : item.path_display);
+      // Check if all ids from data are in the validIds array
+      const allIncluded = dataIds.every(id => validIds.includes(id));
+      return allIncluded
+    }
 
     return (
       <FlatList
@@ -95,66 +120,98 @@ const PatientImageList = memo(
         contentContainerStyle={{ paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item: section }) => {
+
+          let isAllIdsIncluded = checkAllIdsIncluded(section?.data, selectedImages)
+          console.log('isAllIdsIncludedisAllIdsIncluded', isAllIdsIncluded)
           return (
             <>
-              <Text
-                style={{
-                  color: "#000000",
-                  fontWeight: "700",
-                  marginVertical: 15,
-                }}
-              >
-                {section.title}
-              </Text>
-              <FlatList
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'space-between', width: "100%",}}>
+
+                <Text
+                  style={{
+                    color: "#000000",
+                    fontWeight: "700",
+                    marginVertical: 15,
+                  }}
+                >
+                  {section.title}
+                </Text>
+
+
+                <TouchableOpacity
+                  onPress={() => { onPresTitle(section) }}
+                  style={[
+                    styles.check,
+                  ]}
+                >
+                  {isAllIdsIncluded && <Tick height={10} width={10} />}
+                </TouchableOpacity>
+
+              </View>
+              <View style={{ width: "100%", flexDirection: "row", flexWrap: "wrap", justifyContent: 'flex-start' }}>
+                {
+
+                  section?.data && section?.data?.map((item, index) => {
+
+                    const selected = selectedImages.includes(
+                      provider == "google" ? item.id : item.path_display
+                    );
+                    return (
+                      <TouchableOpacity
+                        onPress={() => handleImagePress([item])} // Adjusted to pass the item
+                        onLongPress={() => toggleImageSelection([item])} // Pass item for selection
+                        style={{
+                          borderRadius: 22,
+                          overflow: "hidden",
+                          alignItems: "center",
+                          marginHorizontal: width * 0.025,
+                          marginVertical: width * 0.015,
+                        }}
+                      >
+                        <ImageWithLoader
+                          uri={
+                            provider === "google"
+                              ? item.webContentLink
+                              : item.publicUrl
+                          }
+                          // resizeMode={Fas}
+                          style={{
+                            height: width * 0.25,
+                            width: width * 0.25,
+                          }}
+                        />
+                        {selected && (
+                          <View
+                            style={[
+                              styles.check,
+                              { position: "absolute", left: 10, top: 10 },
+                            ]}
+                          >
+                            <Tick height={10} width={10} />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+
+                    )
+                  })
+                }
+              </View>
+              {/* <FlatList
                 numColumns={3}
                 contentContainerStyle={{
                   padding: 5,
                   paddingBottom: verticalScale(70),
+                  width: "100%",
+                  justifyContent: "space-between",
+                  zIndex: 99999,
+                  backgroundColor: "red",
                 }}
                 showsVerticalScrollIndicator={false}
                 data={section.data}
                 renderItem={({ item }) => {
-                  const selected = selectedImages.includes(
-                    provider == "google" ? item.id : item.path_display
-                  );
-                  return (
-                    <TouchableOpacity
-                      onPress={() => handleImagePress(item)} // Adjusted to pass the item
-                      onLongPress={() => toggleImageSelection(item)} // Pass item for selection
-                      style={{
-                        borderRadius: 22,
-                        overflow: "hidden",
-                        alignItems: "center",
-                        margin: 5,
-                      }}
-                    >
-                      <ImageWithLoader
-                        uri={
-                          provider === "google"
-                            ? item.webContentLink
-                            : item.publicUrl
-                        }
-                        // resizeMode={Fas}
-                        style={{
-                          height: moderateScale(95),
-                          width: moderateScale(95),
-                        }}
-                      />
-                      {selected && (
-                        <View
-                          style={[
-                            styles.check,
-                            { position: "absolute", left: 10, top: 10 },
-                          ]}
-                        >
-                          <Tick height={10} width={10} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
+
                 }}
-              />
+              /> */}
             </>
           );
         }}

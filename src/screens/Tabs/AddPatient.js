@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import WrapperContainer from "../../components/WrapperContainer";
 import commonStyles from "../../styles/commonStyles";
 import AppTextInput from "../../components/AppTextInput";
@@ -18,6 +18,7 @@ import { logout } from "../../redux/slices/authSlice";
 import ConsentPopUp from "../../components/ConsentPopUp";
 import { useFocusEffect } from "@react-navigation/native";
 import DatePicker from 'react-native-date-picker'
+import { CountryPicker,countryCodes } from "react-native-country-codes-picker";
 // import DateTimePickerModal from "react-native-modal-datetime-picker";
 const AddPatient = () => {
   const dispatch = useDispatch();
@@ -37,7 +38,7 @@ const AddPatient = () => {
   const [consent, setConsent] = useState(false);
 
   const [isCountryPickerOpen, setIsCountryPickerOpen] = useState(false);
-  const [countryCode, setCountryCode] = useState('+91');
+  const [countryCode, setCountryCode] = useState('+32');
 
   const [addPatient, { isLoading, error }] = useAddPatientMutation();
 
@@ -48,6 +49,30 @@ const AddPatient = () => {
       "Your account is deactivated. Please contact the administrator."
     );
   }
+
+  const getIPLocation = async () => {
+    try {
+      const res = await fetch('http://ip-api.com/json/');
+      const data = await res.json();
+      console.log(data,'datadata');
+      if(data && data?.countryCode){
+        console.log(data?.countryCode,'data?.countryCode');
+        console.log(countryCodes[0]?.code,'data?.countryCode');
+        let countryData = countryCodes.find((item)=>item.code==data?.countryCode)
+        if(countryData && countryData?.dial_code){
+          setCountryCode(countryData?.dial_code)
+        }
+      }
+    } catch (error) {
+      console.error('IP Location Error:', error);
+    }
+  }; 
+
+  useFocusEffect(
+    React.useCallback(() => {
+      getIPLocation()
+    }, [])
+  );
 
   useFocusEffect(
     React.useCallback(() => {
@@ -93,8 +118,8 @@ const AddPatient = () => {
       Toast.show('Please enter a valid mobile number with 5 to 15 digits');
       return false;
     }
-    
-    if (email.trim()!="" && !validateEmail(email.trim())) {
+
+    if (email.trim() != "" && !validateEmail(email.trim())) {
       Toast.show("Please enter a valid email address");
       return false;
     }
@@ -142,12 +167,12 @@ const AddPatient = () => {
       setDatePickerVisibility(false);
     }
   };
-  const onPhoneInputChange=(val)=>{
-    if(val && val?.length>0){
-        val = val.trim().split(' ').join('');
+  const onPhoneInputChange = (val) => {
+    if (val && val?.length > 0) {
+      val = val.trim().split(' ').join('');
     }
     setPhone(val)
-}
+  }
   return (
     <WrapperContainer wrapperStyle={commonStyles.innerContainer}>
       <KeyboardAwareScrollView
@@ -195,7 +220,7 @@ const AddPatient = () => {
 
 
           <TouchableOpacity style={styles.datePickerBox} onPress={() => setDatePickerVisibility(true)}>
-            <Text style={{ color:dob? COLORS.textColor:COLORS.placeHolderTxtColor, fontSize: 12, }}>{dob ? dob : 'DD-MM-YYYY'}</Text>
+            <Text style={{ color: dob ? COLORS.textColor : COLORS.placeHolderTxtColor, fontSize: 12, }}>{dob ? dob : 'DD-MM-YYYY'}</Text>
           </TouchableOpacity>
 
 

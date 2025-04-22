@@ -31,7 +31,7 @@ const AppTextInput = ({
                     style={[{ marginHorizontal: 9.5 }, leftIconStyle]}
                 />
                 <TextInput
-                    style={[styles.textinputStyle,textInputStyle]}
+                    style={[styles.textinputStyle, textInputStyle]}
                     keyboardType={keyboardType}
                     placeholder={placeholder}
                     placeholderTextColor={placeHolderTxtColor}
@@ -85,6 +85,7 @@ const styles = StyleSheet.create({
         color: COLORS.textColor,
         fontSize: 12,
         flex: 1,
+        height: 39,
     },
     lableStyle: {
         fontFamily: FONTS.regular,

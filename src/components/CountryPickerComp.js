@@ -2,18 +2,19 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native'
 import React from 'react'
 import AppTextInput from "./AppTextInput";
-import { CountryPicker } from "react-native-country-codes-picker";
+import { CountryPicker,countryCodes } from "react-native-country-codes-picker";
 import COLORS from '../styles/colors';
 import { imagePath } from '../configs/imagePath';
 
 export default function CountryPickerComp({ isPickerOpen, closeCountryPicker, openCountryPicker, onInputChange, inputText, setCountryCode, countryCode }) {
-   
+console.log('countryCodecountryCode',countryCode);
+
     return (
         <>
             <View style={styles.countryInputContainer}>
                 <TouchableOpacity
                     onPress={() => { openCountryPicker(!isPickerOpen) }}
-                    style={styles.countryInputLeftContainer}>
+                    style={[styles.countryInputLeftContainer, (Platform.OS == 'ios' && Platform.isPad) && { marginLeft: 50 }]}>
                     <Text style={styles.countryText}>{countryCode}</Text>
                     <Image style={styles.coutryInputLeftDropDown} source={imagePath.rightArrow} />
                 </TouchableOpacity>
@@ -21,8 +22,8 @@ export default function CountryPickerComp({ isPickerOpen, closeCountryPicker, op
                     <AppTextInput
                         keyboardType={"number-pad"}
                         label={"Phone Number"}
-                        leftIconStyle={{display:'none'}}
-                        inputContainerStyle={{ borderWidth: 0, width: '100%',marginTop:Platform.OS=='ios'?-2:1.2}}
+                        leftIconStyle={{ display: 'none' }}
+                        inputContainerStyle={{ borderWidth: 0, width: '100%', marginTop: Platform.OS == 'ios' ? -2 : 1.2 }}
                         placeHolderTxtColor={COLORS.placeHolderTxtColor}
                         placeholder={"Enter phone number"}
                         value={inputText}
@@ -42,19 +43,20 @@ export default function CountryPickerComp({ isPickerOpen, closeCountryPicker, op
                     textInput: {
                         height: 50,
                         borderRadius: 3,
-                        color:'#000000'
+                        color: '#000000'
                     },
                     countryButtonStyles: {
                         height: 50
                     },
-                    dialCode:{
-                        color:'#000'
+                    dialCode: {
+                        color: '#000'
                     },
-                    countryName:{
-                        color:'#000000'
+                    countryName: {
+                        color: '#000000'
                     }
                 }}
                 pickerButtonOnPress={(item) => {
+                    console.log('itemitem--',item)
                     setCountryCode(item.dial_code);
                     closeCountryPicker(false)
                 }}
@@ -75,9 +77,10 @@ const styles = StyleSheet.create({
     countryInputLeftContainer: {
         height: 40.5,
         width: '20%',
-        justifyContent: 'center',
+        justifyContent: (Platform.OS == 'ios' && Platform.isPad) ? 'flex-start' : 'center',
         alignItems: 'center',
-        flexDirection: "row"
+        flexDirection: "row",
+
     },
     countryText: {
         color: COLORS.placeHolderTxtColor,
@@ -87,6 +90,6 @@ const styles = StyleSheet.create({
     coutryInputLeftDropDown: {
         marginLeft: 8,
         transform: [{ rotate: '90deg' }],
-        tintColor:   COLORS.textColor,
+        tintColor: COLORS.textColor,
     }
 });

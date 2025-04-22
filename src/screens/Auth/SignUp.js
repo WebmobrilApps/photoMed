@@ -48,14 +48,13 @@ const SignUp = () => {
             return false;
         }
         // Validate mobile number
-        if (mobile.trim() === '') {
-            Toast.show('Please enter your mobile number');
-            return false;
+        if (mobile.trim() !== '') {
+            if (!/^\d{5,15}$/.test(mobile.trim())) {
+                Toast.show('Please enter a valid mobile number with 5 to 15 digits');
+                return false;
+            }
         }
-        if (!/^\d{5,15}$/.test(mobile.trim())) {
-            Toast.show('Please enter a valid mobile number with 5 to 15 digits');
-            return false;
-        }
+
         // Validate email
         if (email.trim() === '') {
             Toast.show('Please enter email address');
@@ -108,6 +107,7 @@ const SignUp = () => {
             const device_id = await DeviceInfo.getUniqueId();
             const fcmToken = await getData('fcmToken')
             const response = await signUpMutation({ full_name, email, password, mobile, device_type, device_id, fcmToken });
+
             if (response.data?.succeeded) {
                 // Toast.show(`Your otp is : ${response.data.ResponseBody.otp}`);
                 navigate(ScreenName.OTP_VERIFICATION, { screenName: ScreenName.SIGN_UP, userToken: response.data.ResponseBody.token, email: email })
@@ -131,7 +131,7 @@ const SignUp = () => {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollViewContentContainer}
                 extraScrollHeight={10}
-            // enableOnAndroid={true}
+                enableOnAndroid={true}
             >
                 <Image source={imagePath.logo} style={styles.logoStyle} />
                 <AppTextInput
@@ -140,12 +140,7 @@ const SignUp = () => {
                     onChangeText={(txt) => setFullName(txt)}
                     placeholder={'Full Name'}
                     leftIcon={imagePath.user} />
-                <AppTextInput
-                    value={mobile}
-                    onChangeText={(txt) => setMobile(txt)}
-                    placeholder={'Mobile Number'}
-                    keyboardType={'number-pad'}
-                    leftIcon={imagePath.mobile} />
+
                 <AppTextInput
                     value={email}
                     onChangeText={(txt) => setEmail(txt)}
@@ -174,6 +169,13 @@ const SignUp = () => {
                     }}
                     leftIcon={imagePath.lock}
                     rightIcon />
+
+                <AppTextInput
+                    value={mobile}
+                    onChangeText={(txt) => setMobile(txt)}
+                    placeholder={'Mobile Number'}
+                    keyboardType={'number-pad'}
+                    leftIcon={imagePath.mobile} />
                 <View
                     style={[commonStyles.flexView, { alignSelf: 'flex-start', marginLeft: 2, width: '100%', alignItems: 'flex-start' }]}
                 >

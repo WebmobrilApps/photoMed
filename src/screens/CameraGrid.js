@@ -31,7 +31,6 @@ import FrontNeck from "../assets/SvgIcons/Neck/FrontNeck";
 import LeftNeck from "../assets/SvgIcons/Neck/LeftNeck";
 import CustToast from "../components/CustToast";
 import BackTrio from "../assets/SvgIcons/Trichology/BackTrio";
-import GalleryIcon from "../assets/SvgIcons/GalleryIcon";
 import { navigate } from "../navigators/NavigationService";
 import ScreenName from "../configs/screenName";
 import Loading from "../components/Loading";
@@ -65,7 +64,6 @@ import {
   checkAndRefreshGoogleAccessToken,
   getDropboxFileUrl,
   setFilePublic,
-  uploadFilesToPhotoMedFolder,
   getImageDetailsById,
   generateUniqueKey,
   uploadCaptureFilesToPhotoMedFolder,
@@ -81,10 +79,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Image as ImageResizer } from "react-native-compressor";
 import SelectedGridOverlay from "../components/SelectedGridOverlay";
 import imagePaths from "../assets/images";
-import { setPatientImages } from "../redux/slices/patientSlice";
+import { setCurrentPatient, setPatientImages } from "../redux/slices/patientSlice";
 import FastImage from "react-native-fast-image";
 const windowWidth = Dimensions.get("window").width;
-
+import { BASEURL } from "@env";
 const CameraGrid = (props) => {
   const dispatch = useDispatch();
   const cameraRef = useRef(null);
@@ -151,12 +149,14 @@ const CameraGrid = (props) => {
       setSelectedGhostImage(null);
       setSelectedCategory(1);
     }
+
     if (props.route.params?.imageData?.length > 0) {
       let providerType = props.route.params?.provider;
       providerType == "google"
         ? setImages(props.route.params?.imageData)
         : setImageUrls(props.route.params?.imageData);
     }
+
   }, [props.route.params]);
 
   useFocusEffect(
@@ -185,6 +185,40 @@ const CameraGrid = (props) => {
     }
   };
 
+  const activePatient = useSelector((state) => state.patient?.currentActivePatient);
+
+  const updatePatientImage = async (imgData) => {
+    let id = activePatient?._id;
+    const formData = new FormData();
+    let imgUri = await ImageResizer.compress(imgData.uri, {
+      compressionMethod: "auto",
+      maxWidth: 1200,
+      maxHeight: 1200,
+      quality: 0.5,
+    });
+    formData.append('profile', {
+      uri: imgUri,
+      name: imgData.name || "profile.jpg",
+      type: imgData.type || "image/jpeg",
+    });
+
+    fetch(`${BASEURL}updatepatient/${id}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+      body: formData,
+    })
+      .then(response => response.json())
+      .then(json => {
+        if (json?.ResponseBody?.profileImage) dispatch(setCurrentPatient(json?.ResponseBody));
+      })
+      .catch(error => {
+        console.error('upload error--------', error);
+      });
+  };
+
 
   const capturePhoto = async () => {
     if (loacalImageArr.length >= 5) return false
@@ -200,7 +234,7 @@ const CameraGrid = (props) => {
       if (!photo.path.startsWith('file://')) {
         photo.path = `file://${photo.path}`;
       }
-
+      provider === "google" ? fileJson.webContentLink = photo.path : fileJson.publicUrl = photo.path
       let uniqueKey = generateUniqueKey();
       let imageName = `${patientName}_${uniqueKey}.jpg`;
       fileJson.path = photo.path;
@@ -209,6 +243,10 @@ const CameraGrid = (props) => {
       fileJson.name = imageName;
       console.log('loacalImageArr 207', fileJson);
       setLocalImageArr((prevImages) => [fileJson, ...prevImages]);
+
+      if (ghostImage) {
+        setIsVisible(true);
+      }
     }
   };
 
@@ -227,6 +265,8 @@ const CameraGrid = (props) => {
 
 
   const _chooseFile = async () => {
+    console.log('activePatient', activePatient);
+
     if (loacalImageArr?.length <= 0) {
       Alert.alert("Validation Error", "Please capture at least one image first.");
       return;
@@ -234,6 +274,7 @@ const CameraGrid = (props) => {
     try {
       setLoading(true)
       console.log('loacalImageArr length', loacalImageArr.length)
+
       if (provider == "google") {
         await checkAndRefreshGoogleAccessToken(accessToken);
         const patientInfo = {
@@ -260,14 +301,11 @@ const CameraGrid = (props) => {
         setCapturedImages((prevImages) => [...prevImages, ...uploadedImages]);
         dispatch(setPatientImages(imgss));
         saveImageCount(imgss?.length || 0);
-        if (ghostImage) {
-          setIsVisible(true);
-        }
+
       } else {
 
         // Dropbox upload======================
         for (let file of loacalImageArr) {
-          console.log('file--file', file)
           let result = await uploadFileToDropbox({
             file,
             userId: patientName + patientId,
@@ -278,25 +316,25 @@ const CameraGrid = (props) => {
             result.path_display,
             accessToken
           );
-          console.log('publicUrl--', publicUrl);
           result = { ...result, publicUrl };
-          console.log('resultresult--', result);
           setImageUrls((prevImages) => [...prevImages, result]);
           setCapturedImages((prev) => [result, ...prev]);
           let imgss = [result, ...imageUrls];
-          console.log('imgssimgss--', imgss);
           saveImageCount(imgss.length || 0);
         }
       }
-      console.log('capturedImagescapturedImages', capturedImages);
-      console.log('imageUrlsimageUrls', imageUrls);
+      if (!activePatient?.profileImage) {
+        await updatePatientImage(loacalImageArr[0])
+      }
       setLoading(false)
+
     } catch (error) {
       setLoading(false)
       Alert.alert('Something went wrong,Please try again later')
       console.log('verrorerror', error);
     }
   }
+  
   const gridData = [
     { id: 1, icon: Grid33, message: "Grid 3x3" },
     { id: 2, icon: Grid44, message: "Grid 4x4" },
@@ -540,13 +578,14 @@ const CameraGrid = (props) => {
     setIsVisible(false);
     if (ghostImage) {
       // Get the last image from the capturedImages array
-      const lastCapturedImage = capturedImages[capturedImages.length - 1];
+      const lastCapturedImage = loacalImageArr[loacalImageArr.length - 1];
 
       // Create an array with the last captured image and the ghost image
       const updatedImages = [lastCapturedImage, ghostImage];
+      console.log(updatedImages, lastCapturedImage, ghostImage, 'asdasdas');
 
       // Update the state
-      setCapturedImages([...capturedImages, ghostImage]);
+      // setCapturedImages([...capturedImages, ghostImage]);
       setGhostImage(null); // Reset ghostImage
       navigate(ScreenName.COLLAGE_ADD, { images: updatedImages });
     }
@@ -555,9 +594,9 @@ const CameraGrid = (props) => {
   const onLocalImageRemove = () => {
     let imgArr = [...loacalImageArr];
     let arr = imgArr.filter((_, index) => index != selectedImgIndex);
-    if(arr.length>0){
-      setImageSource(arr[arr.length-1].path);
-    } else{
+    if (arr.length > 0) {
+      setImageSource(arr[arr.length - 1].path);
+    } else {
       setImageSource('');
     }
     setLocalImageArr(arr);
