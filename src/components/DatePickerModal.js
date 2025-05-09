@@ -32,8 +32,8 @@ export default function DatePickerModal({ modalVisible, closeModal, doneModal, s
                             console.log('date', date)
                             selcetDate(date)
                         }}
-                        IconPrev={<Image  source={require('../assets/images/left_icon.png')} style={{height:30,width:30,       tintColor:"#32327C"}}/>}
-                        IconNext={<Image source={require('../assets/images/right_arrow.png')} style={{height:30,width:30,       tintColor:"#32327C"}}/>}
+                        // IconPrev={<Image  source={require('../assets/images/left_icon.png')} style={{height:30,width:30,       tintColor:"#32327C"}}/>}
+                        // IconNext={<Image source={require('../assets/images/right_arrow.png')} style={{height:30,width:30,       tintColor:"#32327C"}}/>}
                     />
                     <View style={{ flexDirection: 'row', justifyContent: 'center', }}>
                         <Pressable style={styles.closeButton} onPress={() => closeModal()}>
