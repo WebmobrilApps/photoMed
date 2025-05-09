@@ -21,9 +21,8 @@ import FastImage from 'react-native-fast-image';
 import ImageCropPicker from 'react-native-image-crop-picker';
 import ChooseImagePopUp from '../components/ChooseImagePopUp';
 import { logout } from '../redux/slices/authSlice';
-// import DateTimePickerModal from "react-native-modal-datetime-picker";
 import DatePicker from 'react-native-date-picker'
-
+import DatePickerModal from "../components/DatePickerModal";
 import CountryPickerComp from '../components/CountryPickerComp';
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
@@ -69,6 +68,7 @@ const EditPatient = (props) => {
         console.log('`${newDob[2]}-${newDob[1]}-${newDob[0]}`', `${newDob[2]}-${newDob[1]}-${newDob[0]}`)
         let newDate = `${newDob[2]}-${newDob[1]}-${newDob[0]}`
         setDatePickerValue(newDate)
+        setSelected(new Date(newDate))
         patientDetails.email && setEmail(patientDetails.email)
         if (fullPhone) {
             if (fullPhone.startsWith('+')) {
@@ -111,8 +111,6 @@ const EditPatient = (props) => {
     };
 
 
-    const currentDate = new Date();
-    const eighteenYearsAgo = new Date(currentDate.setFullYear(currentDate.getFullYear() - 18));
 
     const validateFields = () => {
         if (name.trim() === '') {
@@ -172,17 +170,17 @@ const EditPatient = (props) => {
         }
     };
 
-    const handleDateChange = (selectedDate) => {
-        console.log('Selected date: ', selectedDate);
-        if (selectedDate instanceof Date && !isNaN(selectedDate)) {
+    const handleDateChange = () => {
+        console.log('Selected date: ', selected);
+        if (selected instanceof Date && !isNaN(selected)) {
             setDatePickerVisibility(false);
             // Avoid unnecessary updates
-            if (selectedDate !== datePickerValue) {
-                setDatePickerValue(selectedDate);
+            if (selected !== datePickerValue) {
+                setDatePickerValue(selected);
                 // Format the date as DD-MM-YYYY
-                const day = String(selectedDate.getDate()).padStart(2, '0');
-                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                const year = selectedDate.getFullYear();
+                const day = String(selected.getDate()).padStart(2, '0');
+                const month = String(selected.getMonth() + 1).padStart(2, '0');
+                const year = selected.getFullYear();
                 const formattedDate = `${day}-${month}-${year}`;
 
                 setDob(formattedDate);
@@ -234,9 +232,7 @@ const EditPatient = (props) => {
             .catch(e => console.log('Error capturing image:', e));
     };
 
-    const maxDate = useMemo(() => {
-        return new Date()
-    }, []);
+   
 
     const onPhoneInputChange = (val) => {
         if (val && val?.length > 0) {
@@ -244,6 +240,8 @@ const EditPatient = (props) => {
         }
         setPhone(val)
     }
+    const [selected, setSelected] = useState(new Date());
+    const [modalVisible, setModalVisible] = useState(false);
     return (
         <WrapperContainer wrapperStyle={commonStyles.innerContainer}>
             <ChooseImagePopUp
@@ -261,7 +259,6 @@ const EditPatient = (props) => {
             </View>
             <KeyboardAwareScrollView
                 showsVerticalScrollIndicator={false}
-                // contentContainerStyle={styles.scrollViewContentContainer}
                 extraScrollHeight={10}
             >
                 <Loading visible={isLoading || loading} />
@@ -270,6 +267,13 @@ const EditPatient = (props) => {
                     onPressCancel={() => setIsVisible(false)}
                     onPressDelete={() => handleDelete()}
                     visible={visible} />
+                <DatePickerModal
+                    selected={selected}
+                    modalVisible={modalVisible}
+                    selcetDate={(date) => setSelected(date)}
+                    closeModal={() => setModalVisible(false)}
+                    doneModal={() => { setModalVisible(false), handleDateChange() }}
+                />
                 <View style={{ flex: 0.6 }}>
 
                     <AppTextInput
@@ -286,7 +290,7 @@ const EditPatient = (props) => {
                     />
                     {/* Date Picker Modal */}
 
-                    <DatePicker
+                    {/* <DatePicker
                         modal
                         open={isDatePickerVisible}
                         date={new Date(datePickerValue)}
@@ -300,9 +304,9 @@ const EditPatient = (props) => {
                         onCancel={() => {
                             setDatePickerVisibility(false)
                         }}
-                    />
+                    /> */}
 
-                    <TouchableOpacity style={styles.datePickerBox} onPress={() => setDatePickerVisibility(true)}>
+                    <TouchableOpacity style={styles.datePickerBox} onPress={() => setModalVisible(true)}>
                         <Text style={{ color: COLORS.textColor, fontSize: 12, }}>{dob}</Text>
                     </TouchableOpacity>
 

@@ -1,10 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useEffect, useMemo, useState } from "react";
 import WrapperContainer from "../../components/WrapperContainer";
 import commonStyles from "../../styles/commonStyles";
 import AppTextInput from "../../components/AppTextInput";
 import CountryPickerComp from '../../components/CountryPickerComp'
 import CustomBtn from "../../components/CustomBtn";
+import DatePickerModal from "../../components/DatePickerModal";
 import { goBack } from "../../navigators/NavigationService";
 import RecordAddedPopUp from "../../components/RecordAddedPopUp";
 import COLORS from "../../styles/colors";
@@ -17,9 +18,11 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { logout } from "../../redux/slices/authSlice";
 import ConsentPopUp from "../../components/ConsentPopUp";
 import { useFocusEffect } from "@react-navigation/native";
-import DatePicker from 'react-native-date-picker'
-import { CountryPicker,countryCodes } from "react-native-country-codes-picker";
-// import DateTimePickerModal from "react-native-modal-datetime-picker";
+// import DatePicker from 'react-native-date-picker'
+import { CountryPicker, countryCodes } from "react-native-country-codes-picker";
+ 
+
+
 const AddPatient = () => {
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth?.user);
@@ -54,19 +57,19 @@ const AddPatient = () => {
     try {
       const res = await fetch('http://ip-api.com/json/');
       const data = await res.json();
-      console.log(data,'datadata');
-      if(data && data?.countryCode){
-        console.log(data?.countryCode,'data?.countryCode');
-        console.log(countryCodes[0]?.code,'data?.countryCode');
-        let countryData = countryCodes.find((item)=>item.code==data?.countryCode)
-        if(countryData && countryData?.dial_code){
+      console.log(data, 'datadata');
+      if (data && data?.countryCode) {
+        console.log(data?.countryCode, 'data?.countryCode');
+        console.log(countryCodes[0]?.code, 'data?.countryCode');
+        let countryData = countryCodes.find((item) => item.code == data?.countryCode)
+        if (countryData && countryData?.dial_code) {
           setCountryCode(countryData?.dial_code)
         }
       }
     } catch (error) {
       console.error('IP Location Error:', error);
     }
-  }; 
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -148,17 +151,17 @@ const AddPatient = () => {
     }
   };
 
-  const handleDateChange = (selectedDate) => {
+  const handleDateChange = () => {
     // console.log("Selected date: ", selectedDate);
-    if (selectedDate instanceof Date && !isNaN(selectedDate)) {
+    if (selected instanceof Date && !isNaN(selected)) {
       setDatePickerVisibility(false);
       // Avoid unnecessary updates
-      if (selectedDate !== datePickerValue) {
-        setDatePickerValue(selectedDate);
+      if (selected !== datePickerValue) {
+        setDatePickerValue(selected);
         // Format the date as DD-MM-YYYY
-        const day = String(selectedDate.getDate()).padStart(2, "0");
-        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-        const year = selectedDate.getFullYear();
+        const day = String(selected.getDate()).padStart(2, "0");
+        const month = String(selected.getMonth() + 1).padStart(2, "0");
+        const year = selected.getFullYear();
         const formattedDate = `${day}-${month}-${year}`;
 
         setDob(formattedDate);
@@ -173,6 +176,10 @@ const AddPatient = () => {
     }
     setPhone(val)
   }
+
+  const [selected, setSelected] = useState(new Date());
+  const [modalVisible, setModalVisible] = useState(false);
+
   return (
     <WrapperContainer wrapperStyle={commonStyles.innerContainer}>
       <KeyboardAwareScrollView
@@ -186,7 +193,7 @@ const AddPatient = () => {
         />
         <Loading visible={isLoading} />
 
-        <DatePicker
+        {/* <DatePicker
           modal
           open={isDatePickerVisible}
           date={datePickerValue}
@@ -200,7 +207,15 @@ const AddPatient = () => {
           onCancel={() => {
             setDatePickerVisibility(false)
           }}
+        /> */}
+        <DatePickerModal
+          selected={selected}
+          modalVisible={modalVisible}
+          selcetDate={(date)=>setSelected(date)}
+          closeModal={() => setModalVisible(false)}
+          doneModal={() => {setModalVisible(false), handleDateChange()}}
         />
+
         <RecordAddedPopUp
           onPressCancel={() => {
             setIsVisible(false);
@@ -219,7 +234,10 @@ const AddPatient = () => {
           />
 
 
-          <TouchableOpacity style={styles.datePickerBox} onPress={() => setDatePickerVisibility(true)}>
+          <TouchableOpacity style={styles.datePickerBox}
+            // onPress={() => setDatePickerVisibility(true)}
+            onPress={() => setModalVisible(true)}
+          >
             <Text style={{ color: dob ? COLORS.textColor : COLORS.placeHolderTxtColor, fontSize: 12, }}>{dob ? dob : 'DD-MM-YYYY'}</Text>
           </TouchableOpacity>
 
