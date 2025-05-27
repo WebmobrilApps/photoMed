@@ -41,7 +41,7 @@ const useTokenManagement = (provider, accessToken) => {
         isRefreshing.current = true;
         try {
             const validToken = await checkAndRefreshGoogleAccessToken(accessToken);
-            console.log('validTokenvalidToken',validToken);
+            // console.log('validTokenvalidToken',validToken);
             dispatch(setAccessToken(validToken)); // Update Redux store
         } catch (error) {
             console.error('Error ensuring Google token:', error);

@@ -12,7 +12,8 @@ const initialState = {
   patientName: null,
   isRemeberOn: false,
   email: null,
-  password: null
+  password: null,
+  userId:null,
 };
 
 export const authSlice = createSlice({
@@ -52,6 +53,9 @@ export const authSlice = createSlice({
     setLoading: (state, action) => {
       state.loading = action.payload;
     },
+    setUserId: (state, action) => {
+      state.userId = action.payload;
+    },
     setIsRemeberOn: (state, action) => {
       if(action.payload.isRemeberOn){
         state.isRemeberOn = action.payload.isRemeberOn;
@@ -66,4 +70,4 @@ export const authSlice = createSlice({
   },
 });
 export default authSlice.reducer;
-export const { logout, saveUserData, setLoading, setWelcomeScreen, setAccessToken, setCloudType, setRefreshToken, savePatientInfo, setIsRemeberOn } = authSlice.actions;
+export const { logout, saveUserData, setLoading, setWelcomeScreen, setAccessToken, setCloudType, setRefreshToken, savePatientInfo,setUserId, setIsRemeberOn} = authSlice.actions;

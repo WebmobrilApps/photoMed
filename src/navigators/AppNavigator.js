@@ -10,6 +10,7 @@ import Welcome from "../screens/Auth/Welcome";
 import NoInternet from "../components/Nointernet";
 import ConnectCloud from "../screens/Auth/ConnectCloud";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+ 
 
 const AppNavigator = () => {
   const dispatch = useDispatch();
@@ -29,6 +30,10 @@ const AppNavigator = () => {
       },
     },
   };
+
+
+
+  
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {

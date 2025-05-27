@@ -312,15 +312,15 @@ const CameraGrid = (props) => {
             accessToken,
           }).unwrap();
           // Ensures the promise resolves properly
-          // let publicUrl = await getDropboxFileUrl(
-          //   result.path_display,
-          //   accessToken
-          // );
-          // result = { ...result, publicUrl };
-          // setImageUrls((prevImages) => [...prevImages, result]);
-          // setCapturedImages((prev) => [result, ...prev]);
-          // let imgss = [result, ...imageUrls];
-          // saveImageCount(imgss.length || 0);
+          let publicUrl = await getDropboxFileUrl(
+            result.path_display,
+            accessToken
+          );
+          result = { ...result, publicUrl };
+          setImageUrls((prevImages) => [...prevImages, result]);
+          setCapturedImages((prev) => [result, ...prev]);
+          let imgss = [result, ...imageUrls];
+          saveImageCount(imgss.length || 0);
         }
       }
       if (!activePatient?.profileImage) {

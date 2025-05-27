@@ -6,13 +6,13 @@ import { navigate } from "../navigators/NavigationService";
 import ScreenName from "./screenName";
 import { getData, storeData } from "./helperFunction";
 import { store } from "../redux/store";
-import { logout, setAccessToken } from "../redux/slices/authSlice";
+import { logout, setAccessToken, } from "../redux/slices/authSlice";
 import { atob } from "react-native-quick-base64";
 const { dispatch } = store;
 // import uuid from "react-native-uuid";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
-
+ 
 import { Image as ImageResizer } from "react-native-compressor";
 import {
   GOOGLE_CLIENT_SECRET,
@@ -20,9 +20,13 @@ import {
   DROPBOX_CLIENT_SECRET,
   DROPBOX_CLIENT_ID,
   BASEURL,
+  APP_STORE_SECRET
 } from "@env";
- console.log('GOOGLE_CLIENT_SECRET---',GOOGLE_CLIENT_SECRET);
- 
+import { useSelector } from "react-redux";
+console.log('GOOGLE_CLIENT_SECRET---', GOOGLE_CLIENT_SECRET);
+import axios from 'axios';
+import { setUserSubscription } from "../redux/slices/patientSlice";
+
 
 export const configUrl = {
   imageUrl: "http://52.22.241.165:10049/",
@@ -32,7 +36,7 @@ export const configUrl = {
   DROPBOX_CLIENT_ID: DROPBOX_CLIENT_ID,
   DROPBOX_CLIENT_SECRET: DROPBOX_CLIENT_SECRET,
   GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET:GOOGLE_CLIENT_SECRET
+  GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
 };
 
 const BASE_URL = "https://www.googleapis.com/drive/v3";
@@ -49,26 +53,27 @@ export async function getFolderId(
   if (parentFolderId) {
     query += ` and '${parentFolderId}' in parents`;
   }
-try {
-  
-  const response = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
-      query
-    )}&spaces=drive&fields=files(id,name)`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
+  try {
 
-  const data = await response.json();
-  console.log('data---69',data);
-  return data.files && data.files.length > 0 ? data.files[0].id : null;
-} catch (error) {
-  console.log('error---69',error);
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
+        query
+      )}&spaces=drive&fields=files(id,name)`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+    console.log('data---69', data);
+    return data.files && data.files.length > 0 ? data.files[0].id : null;
+  } catch (error) {
+    console.log('error---69', error);
+  }
 }
-}
+
 
 export async function createFolder(folderName, accessToken) {
   const response = await fetch("https://www.googleapis.com/drive/v3/files", {
@@ -85,6 +90,8 @@ export async function createFolder(folderName, accessToken) {
   const data = await response.json();
   return data.id;
 }
+
+
 
 export async function uploadFileToDrive(
   file,
@@ -311,11 +318,11 @@ export async function uploadCaptureFilesToPhotoMedFolder(
       accessToken,
       "root"
     );
-    
+
     if (!allImagesFolderId) {
       throw new Error("Failed to upload file");
     }
-    
+
     const uploadPromises = filePathArray.map(async (file, index) => {
       return uploadFileToDrive(
         file,
@@ -788,6 +795,7 @@ export async function listDropboxFilesInFolder(folderPath, accessToken) {
       body: JSON.stringify({ path: folderPath }),
     });
 
+
     const responseData = await response.json();
     if (response.ok) {
       return responseData.entries; // Return file entries (metadata)
@@ -1054,9 +1062,8 @@ export async function copyImageToCategoryWithCheck({
     let imagesCount =
       filesInFolder && filesInFolder.length > 0 ? filesInFolder.length : 0;
     let uniqueKey = generateUniqueKey();
-    let image_new_name = `${patientName.trim()}_${cat}_${subCat}_${uniqueKey}_${
-      imagesCount + 1
-    }.jpeg`;
+    let image_new_name = `${patientName.trim()}_${cat}_${subCat}_${uniqueKey}_${imagesCount + 1
+      }.jpeg`;
 
     const destinationPath = `${destinationFolder}/${image_new_name}`; // Full path including the file name
 
@@ -1395,4 +1402,153 @@ export async function copyImageToGoogleDriveAllImagesFolder({
     console.error("Error in copyImageToGoogleDriveAllImagesFolder:", error);
     throw error;
   }
+}
+
+
+
+export async function getUserPlans(token, isLast = true) {
+  let url = !isLast ? `${BASEURL}subscriptions` : `${BASEURL}subscriptions?latest=true`
+  console.log('----token---', token);
+  console.log('----url---', url);
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const data = await response.json();
+  return data;
+}
+
+export async function addSubscriptions(token, data1) {
+  let url = `${BASEURL}subscriptions`
+  try {
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data1),
+    });
+    const data = await response.json();
+    console.log('addSubscriptionsaddSubscriptions error data', data);
+
+    return data;
+
+  } catch (error) {
+    console.log('addSubscriptionsaddSubscriptions error', error);
+
+  }
+}
+
+
+export const validateReceiptData = async (receipt, platform = Platform.OS) => {
+  const validProductIds = Platform.select({
+    ios: ['monthlysubscription123', 'yearlysubscription49', 'quarterlysubscription26'],
+    android: ['com.photomedPro.com'],
+  });
+
+  try {
+    let validation = null;
+
+    if (platform === 'ios') {
+      let response = await axios.post('https://buy.itunes.apple.com/verifyReceipt', {
+        'receipt-data': receipt,
+        'password': APP_STORE_SECRET,
+        'exclude-old-transactions': true,
+      });
+
+      if (response.data.status === 21007) {
+        response = await axios.post('https://sandbox.itunes.apple.com/verifyReceipt', {
+          'receipt-data': receipt,
+          'password': APP_STORE_SECRET,
+          'exclude-old-transactions': true,
+        });
+      }
+
+      const { status, latest_receipt_info, pending_renewal_info } = response.data;
+      console.log('===response===',response.data);
+
+      if (status !== 0) {
+        console.warn('Apple receipt validation failed:', response.data);
+        return null;
+      }
+
+      const activeSub = latest_receipt_info
+        .filter((r) => validProductIds.includes(r.product_id))
+        .sort((a, b) => b.purchase_date_ms - a.purchase_date_ms)[0];
+
+      if (activeSub) {
+        const expiresDateMs = parseInt(activeSub.expires_date_ms, 10);
+        const isExpired = Date.now() > expiresDateMs ? 'yes' : 'no';;
+        const renewalInfo = pending_renewal_info?.find(
+          (info) => info.product_id === activeSub.product_id
+        );
+        const isCanceled = renewalInfo?.auto_renew_status === '0' ? 'yes' : 'no';;
+
+        validation = {
+          platform: 'ios',
+          productId: activeSub.product_id,
+          transactionId: activeSub.original_transaction_id,
+          isExpired,
+          isCanceled,
+          expirationDate: new Date(expiresDateMs).toISOString(),
+          expirationDateMs: expiresDateMs,
+        };
+      }
+    } else {
+      const receiptData = JSON.parse(receipt);
+      const { purchaseToken, productId, packageName } = receiptData;
+
+      const purchase = await androidPublisher.purchases.subscriptions.get({
+        packageName,
+        subscriptionId: productId,
+        token: purchaseToken,
+      });
+
+      const sub = purchase.data;
+      const expiresDateMs = parseInt(sub.expiryTimeMillis, 10);
+      const isExpired = Date.now() > expiresDateMs ? 'yes' : 'no';
+      const isCanceled = (sub.autoRenewing === false && !isExpired) ? 'yes' : 'no';;
+
+      validation = {
+        platform: 'android',
+        productId,
+        isExpired,
+        isCanceled,
+        expirationDate: new Date(expiresDateMs).toISOString(),
+        expirationDateMs: expiresDateMs,
+      };
+    }
+
+    return validation;
+  } catch (err) {
+    console.error('❌ Receipt validation failed:', err?.response?.data || err.message);
+    return null;
+  }
+};
+
+export const getUserSubscription = async (token) => {
+  try {
+    getUserPlans(token).then(async (userSub) => {
+      if (userSub?.ResponseBody) {
+        let validRecipt = await validateReceiptData(userSub?.ResponseBody?.receiptData, userSub?.ResponseBody?.receiptData?.platform);
+        console.log('validReciptvalidRecipt', validRecipt);
+        if (validRecipt) {
+          dispatch(setUserSubscription(validRecipt));
+        }
+      }
+      // console.log('getUserPlans success ---', userSub);
+    }).catch((error) => {
+      console.log('getUserPlans error---', error);
+    })
+
+  } catch (error) {
+
+  }
+
 }

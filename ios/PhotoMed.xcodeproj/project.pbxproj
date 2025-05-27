@@ -13,6 +13,7 @@
 		13B07FC11A68108700A75B9A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 13B07FB71A68108700A75B9A /* main.m */; };
 		29FE14799C6244AAA0E26CF7 /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ABB9B78D7DE543D0BD192A84 /* Colors.xcassets */; };
 		41C9E3912D01723100D54BFB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 41C9E3902D01723100D54BFB /* GoogleService-Info.plist */; };
+		41DA30B62DDC9469001DEF58 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 41DA30B52DDC9469001DEF58 /* StoreKit.framework */; };
 		456AFD43DA6403C4F79B7747 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EEA43ADFC18C5373B8ECE54E /* PrivacyInfo.xcprivacy */; };
 		6B5524F2B3E349B09C8500C3 /* Poppins-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EE0D2226113844C889CA9634 /* Poppins-Medium.ttf */; };
 		6FD28382550D454063C83D16 /* libPods-PhotoMed-PhotoMedTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 36522DE75104C406245D3BF0 /* libPods-PhotoMed-PhotoMedTests.a */; };
@@ -51,6 +52,7 @@
 		36522DE75104C406245D3BF0 /* libPods-PhotoMed-PhotoMedTests.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-PhotoMed-PhotoMedTests.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		413E56A42CE482D700BEFB66 /* PhotoMed.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = PhotoMed.entitlements; path = PhotoMed/PhotoMed.entitlements; sourceTree = "<group>"; };
 		41C9E3902D01723100D54BFB /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		41DA30B52DDC9469001DEF58 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		4B261D9C323DA16C042B04D6 /* Pods-PhotoMed-PhotoMedTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-PhotoMed-PhotoMedTests.debug.xcconfig"; path = "Target Support Files/Pods-PhotoMed-PhotoMedTests/Pods-PhotoMed-PhotoMedTests.debug.xcconfig"; sourceTree = "<group>"; };
 		4BBCBC2F35345E5E5B480D72 /* libPods-PhotoMed.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-PhotoMed.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5474C9D7FC6F40EF850CB80C /* Poppins-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-SemiBold.ttf"; path = "../src/assets/fonts/Poppins-SemiBold.ttf"; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A15CA9700B65B016ABED5A13 /* libPods-PhotoMed.a in Frameworks */,
+				41DA30B62DDC9469001DEF58 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,6 +140,7 @@
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				41DA30B52DDC9469001DEF58 /* StoreKit.framework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				4BBCBC2F35345E5E5B480D72 /* libPods-PhotoMed.a */,
 				36522DE75104C406245D3BF0 /* libPods-PhotoMed-PhotoMedTests.a */,
@@ -298,7 +302,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 12;
 			files = (
 			);
 			inputPaths = (
@@ -494,7 +498,7 @@
 				CODE_SIGN_ENTITLEMENTS = PhotoMed/PhotoMed.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = XFJA234M9Y;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = PhotoMed/Info.plist;
@@ -529,7 +533,7 @@
 				CODE_SIGN_ENTITLEMENTS = PhotoMed/PhotoMed.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = XFJA234M9Y;
 				INFOPLIST_FILE = PhotoMed/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

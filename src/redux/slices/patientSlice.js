@@ -1,8 +1,9 @@
-import {createSlice,} from '@reduxjs/toolkit';
+import { createSlice, } from '@reduxjs/toolkit';
 
 const initialState = {
-  currentActivePatient:null,
-  patientImages:[],
+  currentActivePatient: null,
+  patientImages: [],
+  userSubscription: null
 };
 
 export const patientSlice = createSlice({
@@ -15,7 +16,11 @@ export const patientSlice = createSlice({
     setCurrentPatient: (state, action) => {
       state.currentActivePatient = action.payload
     },
+
+    setUserSubscription: (state, action) => {
+      state.userSubscription = action.payload;
+    },
   },
 });
 export default patientSlice.reducer;
-export const {setPatientImages,setCurrentPatient} = patientSlice.actions;
+export const { setPatientImages, setCurrentPatient, setUserSubscription } = patientSlice.actions;

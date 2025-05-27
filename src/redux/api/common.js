@@ -120,13 +120,13 @@ export const commonApi = createApi({
     updatePatient: builder.mutation({
       query: (data) => {
         const formData = new FormData();
-        if (data?.updateType=='count') {
+        if (data?.updateType == 'count') {
           formData.append("imageCount", data.patientData.imageCount);
-        }else if(data?.updateType=='profile_pic'){
+        } else if (data?.updateType == 'profile_pic') {
 
-          console.log('datadata update profile_pic',data);
-          console.log('datadata update profile_pic',data?.updateType);
-          
+          console.log('datadata update profile_pic', data);
+          console.log('datadata update profile_pic', data?.updateType);
+
 
           formData.append("profile", {
             uri: data.patientData.data.uri,
@@ -757,7 +757,16 @@ export const commonApi = createApi({
         },
       }),
     }),
-
+    getUserProfile: builder.query({
+      query: ({token }) => ({
+        url: 'getprofile',
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }),
+    }),
     deleteTagSubTag: builder.mutation({
       query: ({ token, id }) => ({
         url: `deletedrcategory/${id}`,
@@ -813,6 +822,7 @@ export const {
   useShareUrlMutation,
   usePostDrCategorySubcatMutation,
   useGetMixedCategoriesQuery,
+  useGetUserProfileQuery,
   useDeleteTagSubTagMutation,
   usePostPatientTagsMutation
 } = commonApi;

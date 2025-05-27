@@ -77,9 +77,9 @@ const Profile = (props) => {
       screenName: ScreenName.CHANGE_PASSWORD,
     }] : []),
     {
-      id: 3,
-      name: 'Terms and Condition',
-      screenName: ScreenName.TERMS,
+      id: 8,
+      name: 'Manage Subscription',
+      screenName: ScreenName.SUB_MANAGE,
       slug:'terms-and-conditions'
     },
     {

@@ -8,20 +8,17 @@ import {
   View,
   RefreshControl,
   TextInput,
-  AppState,
-  Alert,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import WrapperContainer from "../../components/WrapperContainer";
+import SubscriptionExpiredModal from "../../components/SubscriptionExpiredModal";
 import commonStyles from "../../styles/commonStyles";
 import { imagePath } from "../../configs/imagePath";
 import useTokenManagement from "../../configs/useTokenManagement";
 import {
-  checkAccessTokenValidity,
-  checkAndRefreshGoogleAccessToken,
   configUrl,
-  ensureValidAccessToken,
-  refreshAccessToken,
+  getUserPlans,
+  validateReceiptData,
 } from "../../configs/api";
 import { SwiperFlatList } from "react-native-swiper-flatlist";
 import COLORS from "../../styles/colors";
@@ -31,22 +28,22 @@ import { navigate } from "../../navigators/NavigationService";
 import ScreenName from "../../configs/screenName";
 import {
   useGetBannersQuery,
-  useGetPatientsQuery,
+  useGetUserProfileQuery,
 } from "../../redux/api/common"; // Changed to query
 import { useDispatch, useSelector } from "react-redux";
 import Loading from "../../components/Loading";
 import CustomBtn from "../../components/CustomBtn";
 import Toast from "react-native-simple-toast";
 import CrossIcon from "../../assets/SvgIcons/CrossIcon";
-import FastImage from "react-native-fast-image";
 import ImageWithLoader from "../../components/ImageWithLoader";
-import { logout, setAccessToken } from "../../redux/slices/authSlice";
-import { getData, removeData, storeData } from "../../configs/helperFunction";
+import { logout} from "../../redux/slices/authSlice";
+import {removeData } from "../../configs/helperFunction";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   setCurrentPatient,
   setPatientImages,
+  setUserSubscription,
 } from "../../redux/slices/patientSlice";
 const { width } = Dimensions.get("window");
 
@@ -73,18 +70,15 @@ const Home = () => {
 
   const token = useSelector((state) => state.auth?.user);
   const accessToken = useSelector((state) => state.auth.accessToken);
-  const [searchQuery, setSearchQuery] = useState("");
+
   const [patientData2, setPatientData2] = useState([]);
   const [originalData, setOriginalData] = useState([]);
   const [refreshing, setRefreshing] = useState(false); // State for pull-to-refresh
   const [patients, setPatients] = useState(null); // State for pull-to-refresh
   const [isLoading, setIsLoading] = useState(false); // State for pull-to-refresh
-  //   const {
-  //     data: patients,
-  //     isLoading,
-  //     error,
-  //     refetch,
-  //   } = useGetPatientsQuery({ token }); // Using query
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false); // State for pull-to-refresh
+  const [isSubscriptionModal, setIsSubscriptionModal] = useState(false); // State for pull-to-refresh
+
   const {
     data: banner,
     isLoading: loading,
@@ -92,12 +86,41 @@ const Home = () => {
   } = useGetBannersQuery();
   const banners = banner?.ResponseBody;
 
-  //   if (error?.data?.isDeleted || error?.data?.status === 2) {
-  //     dispatch(logout());
-  //     Toast.show(
-  //       "Your account is deactivated. Please contact the administrator."
-  //     );
-  //   }
+
+ const { data: profileData, isLoading:profileLoading, isError: err,error } = useGetUserProfileQuery({ token });
+  if (profileData) {
+    console.log('profileDataprofileData', profileData);
+  }
+  async function getSubs() {
+    if (token) {
+      setIsSubscriptionLoading(true)
+      getUserPlans(token).then(async (userSub) => {
+        if (userSub?.ResponseBody?.receiptData) {
+          let validRecipt = await validateReceiptData(userSub?.ResponseBody?.receiptData, userSub?.ResponseBody?.platform);
+          console.log('home recipt---', validRecipt);
+          if (validRecipt) {
+            if (validRecipt.isExpired === 'yes') {
+              setIsSubscriptionModal(true)
+            }
+            dispatch(setUserSubscription(validRecipt));
+          }
+        }
+        if(!userSub?.succeeded) {
+          setIsSubscriptionModal(true)
+        }
+        console.log('getUserPlans success home---', userSub);
+      }).catch((error) => {
+        console.log('home plan get error', error);
+      }).finally(() => {
+        setIsSubscriptionLoading(false)
+      })
+    }
+  }
+  useFocusEffect(
+    useCallback(() => {
+      getSubs()
+    }, [token])
+  );
 
   useTokenManagement(provider, accessToken);
 
@@ -161,7 +184,7 @@ const Home = () => {
       setIsLoading(false);
       if (pData?.ResponseCode === 200 || pData?.ResponseCode === "200") {
         setPatients(pData);
-      }else{
+      } else {
         setOriginalData([]);
         setPatientData2([]);
       }
@@ -177,7 +200,7 @@ const Home = () => {
       Toast.show("Failed to fetch patients. Please try again later.");
     }
   };
-  //   };
+
 
   const debouncedSearchPatient = debounce(
     searchPatientApi,
@@ -185,7 +208,7 @@ const Home = () => {
     800
   );
 
- 
+
   const formatUrl = (url) => {
     // Replace backslashes with forward slashes
     let formattedUrl = url.replace(/\\/g, "/");
@@ -260,15 +283,18 @@ const Home = () => {
     );
   };
 
-  // if (isLoading) {
-  //   return <Loading visible={true} />; // Show loading indicator
-  // }
-
   return (
     <WrapperContainer
       wrapperStyle={[commonStyles.innerContainer, { paddingHorizontal: 0 }]}
     >
-    <Loading visible={isLoading} />
+      <SubscriptionExpiredModal
+        visible={isSubscriptionModal}
+        onViewPlans={() => {
+          setIsSubscriptionModal(false);
+          navigate('SubscriptionManage'); // Or your view plans screen
+        }}
+      />
+      <Loading visible={isSubscriptionLoading} />
       <View style={{ paddingHorizontal: 20 }}>
         <View style={[styles.textInputContainerStyle]}>
           <Image
@@ -288,7 +314,7 @@ const Home = () => {
             <TouchableOpacity
               onPress={() => {
                 setSearchTerm("");
-                searchPatientApi("",'1st'); // Reset the patient list to the original data
+                searchPatientApi("", '1st'); // Reset the patient list to the original data
               }}
               style={{
                 justifyContent: "center",
@@ -334,7 +360,7 @@ const Home = () => {
                     No matching patients found.
                   </Text>
                   <Text style={[styles.emptyText, { fontSize: 12 }]}>
-                  Try adjusting your search criteria or adding a new patient if they aren't in the list. You can also search using tags.
+                    Try adjusting your search criteria or adding a new patient if they aren't in the list. You can also search using tags.
                   </Text>
                 </>
               ) : (

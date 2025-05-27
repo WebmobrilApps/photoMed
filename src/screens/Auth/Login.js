@@ -14,7 +14,7 @@ import ScreenName from '../../configs/screenName';
 import { navigate } from '../../navigators/NavigationService';
 import Loading from '../../components/Loading';
 import { useDispatch, useSelector } from 'react-redux';
-import { saveUserData, setIsRemeberOn } from '../../redux/slices/authSlice';
+import { saveUserData, setIsRemeberOn, setUserId } from '../../redux/slices/authSlice';
 import { useLoginMutation } from '../../redux/api/user';
 import { validateEmail } from '../../components/Validation';
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
@@ -23,9 +23,16 @@ import Toast from 'react-native-simple-toast'
 import DeviceInfo from 'react-native-device-info';
 import { getData } from '../../configs/helperFunction';
 import { configUrl } from '../../configs/api';
-
+import {
+    appleAuth,
+} from '@invertase/react-native-apple-authentication';
+import { jwtDecode } from 'jwt-decode';
+ import Config from 'react-native-config';
 const Login = () => {
     const [socialLogin, { isLoading: loading, isSuccess, error }] = useSocialLoginMutation();
+    console.log( "error", error);
+    console.log( "APP_STORE_SECRET", Config.APP_STORE_SECRET);
+
 
     GoogleSignin.configure({
         webClientId: configUrl.GOOGLE_CLIENT_ID,
@@ -134,14 +141,82 @@ const Login = () => {
                             isRemeberOn: false,
                         }))
                     }
+                    console.log(loginApiResponse.data.ResponseBody, 'loginApiResponse.data.ResponseBody');
+
                     Toast.show(loginApiResponse.data.ResponseMessage);
                     dispatch(saveUserData(loginApiResponse.data.ResponseBody.token));
+                    dispatch(setUserId(loginApiResponse.data.ResponseBody.id));
                 }
             } else {
                 Toast.show(loginApiResponse?.data?.ResponseMessage || loginApiResponse.error?.data?.ResponseMessage || 'Something went wrong. Please try again.');
             }
         } catch (error) {
             console.error('Login API Error:', error);
+        }
+    };
+
+
+    async function onAppleButtonPress() {
+        try {
+            const fcmToken = await getData('fcmToken')
+            const device_type = getPlatformValue();
+            const device_id = await DeviceInfo.getUniqueId();
+
+            // Start the sign-in request
+            const appleAuthRequestResponse = await appleAuth.performRequest({
+                requestedOperation: appleAuth.Operation.LOGIN,
+                requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
+            });
+
+            // Get user data
+            const {
+                user,
+                email,
+                fullName,
+                identityToken,
+                authorizationCode,
+            } = appleAuthRequestResponse;
+
+            const decoded = jwtDecode(identityToken);
+            console.log('---decodeddecoded--', decoded);
+
+            if (!identityToken) {
+                throw new Error('No idToken received from Google Sign-In');
+            }
+
+            console.log('appleAuthRequestResponseappleAuthRequestResponse', appleAuthRequestResponse);
+
+
+            console.log('apple signup', {
+                social_id: identityToken,
+                full_name: "Apple user",
+                login_type: 'apple',
+                email: decoded.email,
+                device_id,
+                device_type,
+                fcmToken
+            });
+
+
+            const result = await socialLogin({
+                social_id: identityToken,
+                full_name: "Apple user",
+                login_type: 'apple',
+                email: decoded.email,
+                device_id,
+                device_type,
+                fcmToken
+            });
+            console.log('resultresult', result);
+
+            if (result?.data?.succeeded) {
+                Toast.show(result?.data?.ResponseMessage)
+                dispatch(saveUserData(result?.data?.ResponseBody?.token))
+            }
+
+        } catch (error) {
+            console.error('Apple Sign-In Error:', error);
+            //   Toast.show(error.message || "Google SignIn Error");
         }
     };
 
@@ -237,14 +312,15 @@ const Login = () => {
                     <Text style={styles.orTxt}>Or</Text>
                     <View style={styles.devider} />
                 </View>
-                <View style={commonStyles.flexView}>
-                    <TouchableOpacity
-                        onPress={() => onGoogleButtonPress()}
-                    >
-                        <Image source={imagePath.google} />
+                <View style={[commonStyles.flexView, { width: '20%', justifyContent: 'space-between' }]}>
+                    <TouchableOpacity onPress={() => onGoogleButtonPress()}>
+                        <Image style={{height:25,width:25}} source={imagePath.google} />
                     </TouchableOpacity>
-                    <Image source={imagePath.facebook} style={{ marginHorizontal: 20 }} />
-                    <Image source={imagePath.insta} />
+                    <TouchableOpacity onPress={() => onAppleButtonPress()}>
+                        <Image  style={{height:25,width:25}} source={imagePath.applelogo} />
+                    </TouchableOpacity>
+                    {/*  <Image source={imagePath.facebook} style={{ marginHorizontal: 20 }} />
+                    <Image source={imagePath.insta} />*/}
                 </View>
                 {/* <LoginButton
                     onLoginFinished={

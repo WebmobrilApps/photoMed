@@ -22,6 +22,7 @@ const ScreenName = {
   EDIT_PATIENT:'Edit Patient Details',
   SELECT_PHOTO:'Select A Photo',
   FRAMING:'Framing',
+  SUB_MANAGE:'SubscriptionManage',
 };
 
 export default ScreenName;

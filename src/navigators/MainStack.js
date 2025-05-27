@@ -20,9 +20,9 @@ import CollageAdd from '../screens/CollageAdd';
 import EditPatient from '../screens/EditPatient';
 import SelectPhoto from '../screens/SelectPhoto';
 import Framing from '../screens/Framing';
-import DemoScreen from '../screens/DemoScreen'
 import ImageZoomML from '../screens/ImageZoomML'
 import { Image, TouchableOpacity, View } from 'react-native';
+import SubscriptionManage from "../screens/Auth/SubscriptionManage";
 
 
 const Stack = createNativeStackNavigator();
@@ -138,22 +138,7 @@ const MainStack = () => {
           }
         }}
       />
-      <Stack.Screen
-        name={'DemoScreen'}
-        component={DemoScreen}
-        options={{
-          headerShown: true,
-          headerTintColor: COLORS.textColor,
-          headerTitle: '',
-          headerLeft: () => {
-            return (
-              <CrossIcon
-                onPress={() => goBack()}
-              />
-            )
-          }
-        }}
-      />
+      
       <Stack.Screen
         name={'ImageZoomML'}
         component={ImageZoomML}
@@ -208,6 +193,14 @@ const MainStack = () => {
         component={EditPatient}
         options={{
           headerShown: true,
+          headerTintColor: COLORS.textColor
+        }}
+      />
+      <Stack.Screen
+        name={ScreenName.SUB_MANAGE}
+        component={SubscriptionManage}
+        options={{
+          headerShown: false,
           headerTintColor: COLORS.textColor
         }}
       />
