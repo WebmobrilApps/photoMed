@@ -7,13 +7,15 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../redux/slices/authSlice';
 
 const { width } = Dimensions.get('window');
 
 const SubscriptionExpiredModal = ({ visible, onViewPlans, }) => {
-    const dispatch = useDispatch()
+  const dispatch = useDispatch()
+
+  const token = useSelector((state) => state.auth?.user);
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
@@ -23,7 +25,7 @@ const SubscriptionExpiredModal = ({ visible, onViewPlans, }) => {
             To continue enjoying full access, please renew or choose a new plan.
           </Text>
           <View style={{ flexDirection: 'row', justifyContent: "space-between", }}>
-            <TouchableOpacity style={styles.buttonborder} onPress={()=>dispatch(logout())}>
+            <TouchableOpacity style={styles.buttonborder} onPress={() => dispatch(logout())}>
               <Text style={styles.buttonTextborder}>Logout</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={onViewPlans}>

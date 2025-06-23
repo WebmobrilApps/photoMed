@@ -8,6 +8,7 @@ import {
   View,
   RefreshControl,
   TextInput,
+  Platform,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import WrapperContainer from "../../components/WrapperContainer";
@@ -19,6 +20,7 @@ import {
   configUrl,
   getUserPlans,
   validateReceiptData,
+  validateSubscription,
 } from "../../configs/api";
 import { SwiperFlatList } from "react-native-swiper-flatlist";
 import COLORS from "../../styles/colors";
@@ -36,15 +38,16 @@ import CustomBtn from "../../components/CustomBtn";
 import Toast from "react-native-simple-toast";
 import CrossIcon from "../../assets/SvgIcons/CrossIcon";
 import ImageWithLoader from "../../components/ImageWithLoader";
-import { logout} from "../../redux/slices/authSlice";
-import {removeData } from "../../configs/helperFunction";
+import { logout } from "../../redux/slices/authSlice";
+import { removeData } from "../../configs/helperFunction";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import {
   setCurrentPatient,
   setPatientImages,
   setUserSubscription,
 } from "../../redux/slices/patientSlice";
+import Orientation from "react-native-orientation-locker";
 const { width } = Dimensions.get("window");
 
 const Home = () => {
@@ -87,38 +90,56 @@ const Home = () => {
   const banners = banner?.ResponseBody;
 
 
- const { data: profileData, isLoading:profileLoading, isError: err,error } = useGetUserProfileQuery({ token });
+  const { data: profileData, isLoading: profileLoading, isError: err, error } = useGetUserProfileQuery({ token });
   if (profileData) {
     console.log('profileDataprofileData', profileData);
   }
   async function getSubs() {
-    if (token) {
-      setIsSubscriptionLoading(true)
-      getUserPlans(token).then(async (userSub) => {
-        if (userSub?.ResponseBody?.receiptData) {
-          let validRecipt = await validateReceiptData(userSub?.ResponseBody?.receiptData, userSub?.ResponseBody?.platform);
-          console.log('home recipt---', validRecipt);
-          if (validRecipt) {
-            if (validRecipt.isExpired === 'yes') {
-              setIsSubscriptionModal(true)
-            }
-            dispatch(setUserSubscription(validRecipt));
+    try {
+      if (token) {
+        setIsSubscriptionLoading(true)
+        let res = await validateSubscription(token)
+        console.log('get Subs res', res);
+
+        if (res?.succeeded) {
+          let subRes = res?.ResponseBody
+          if (subRes?.isExpired === 'yes') {
+            setIsSubscriptionModal(true)
           }
-        }
-        if(!userSub?.succeeded) {
+          dispatch(setUserSubscription(subRes));
+        } else {
           setIsSubscriptionModal(true)
         }
-        console.log('getUserPlans success home---', userSub);
-      }).catch((error) => {
-        console.log('home plan get error', error);
-      }).finally(() => {
         setIsSubscriptionLoading(false)
-      })
+        // setIsSubscriptionLoading(true)
+        // getUserPlans(token).then(async (userSub) => {
+        //   if (userSub?.ResponseBody?.receiptData) {
+        //     let validRecipt = await validateReceiptData(userSub?.ResponseBody?.receiptData, userSub?.ResponseBody?.platform);
+        //     console.log('home recipt---', validRecipt);
+        //     if (validRecipt) {
+        //       if (validRecipt.isExpired === 'yes') {
+        //         setIsSubscriptionModal(true)
+        //       }
+        //       dispatch(setUserSubscription(validRecipt));
+        //     }
+        //   }
+        //   if(!userSub?.succeeded) {
+        //     setIsSubscriptionModal(true)
+        //   }
+        //   console.log('getUserPlans success home---', userSub);
+        // }).catch((error) => {
+        //   console.log('home plan get error', error);
+        // }).finally(() => {
+        //   setIsSubscriptionLoading(false)
+        // })
+      }
+    } catch (error) {
+      setIsSubscriptionLoading(false)
     }
   }
   useFocusEffect(
     useCallback(() => {
-      getSubs()
+      // Platform.OS == 'ios' && getSubs()
     }, [token])
   );
 
@@ -221,10 +242,19 @@ const Home = () => {
     const formattedUrl = formatUrl(rawUrl);
     return (
       <View style={{ width }}>
-        <ImageWithLoader
-          uri={formattedUrl}
-          style={styles.bannerImgStyle}
-        />
+        <View style={{
+          borderRadius: 10,
+          borderColor: COLORS.blackColor,
+          borderWidth: 1,
+          marginHorizontal: 30,
+          paddingHorizontal: 8
+        }}>
+          <ImageWithLoader
+            uri={formattedUrl}
+            resizeMode={'contain'}
+            style={styles.bannerImgStyle}
+          />
+        </View>
       </View>
     );
   };
@@ -257,7 +287,7 @@ const Home = () => {
             )}
             {item?.email && <Text style={styles.subTitle}>{item.email}</Text>}
           </View>
-          <View style={styles.countWrapper}>
+          {/*<View style={styles.countWrapper}>
             {item?.imageCount &&
               item?.imageCount !== "" &&
               item?.imageCount !== null &&
@@ -277,12 +307,19 @@ const Home = () => {
                 </View>
               )}
             <Image source={imagePath.gallery} style={styles.imgIcon} />
-          </View>
+          </View>*/}
         </View>
       </TouchableOpacity>
     );
   };
+  const navigation = useNavigation()
+  React.useEffect(() => {
+    navigation.addListener("focus", () => {
+      Orientation.unlockAllOrientations();
+      Orientation.lockToPortrait();
+    });
 
+  }, [navigation]);
   return (
     <WrapperContainer
       wrapperStyle={[commonStyles.innerContainer, { paddingHorizontal: 0 }]}
@@ -291,7 +328,7 @@ const Home = () => {
         visible={isSubscriptionModal}
         onViewPlans={() => {
           setIsSubscriptionModal(false);
-          navigate('SubscriptionManage'); // Or your view plans screen
+          navigate('SubscriptionManage', { token: token }); // Or your view plans screen
         }}
       />
       <Loading visible={isSubscriptionLoading} />
@@ -334,6 +371,7 @@ const Home = () => {
           keyExtractor={(item, index) => index.toString()}
           showsVerticalScrollIndicator={false}
           renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 90 }}
           ListHeaderComponent={
             <View style={styles.swiperContainer}>
               <SwiperFlatList
@@ -342,7 +380,7 @@ const Home = () => {
                 autoplayLoop
                 showPagination
                 paginationActiveColor={COLORS.primary}
-                paginationStyle={{ bottom: verticalScale(-30) }}
+                paginationStyle={{ bottom: verticalScale(-50) }}
                 paginationStyleItemInactive={styles.paginationInActiveStyle}
                 paginationStyleItemActive={styles.paginationActiveStyle}
                 data={banners}
@@ -410,7 +448,7 @@ const styles = StyleSheet.create({
     width,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: verticalScale(20),
+    marginBottom: verticalScale(40),
   },
   paginationInActiveStyle: {
     backgroundColor: COLORS.whiteColor,
@@ -426,13 +464,9 @@ const styles = StyleSheet.create({
     width: 8,
   },
   bannerImgStyle: {
-    borderRadius: 10,
-    borderColor: COLORS.blackColor,
-    borderWidth: 1,
-    width: width / 1.1,
+    width: width * 0.8,
     alignSelf: "center",
-    height: verticalScale(140),
-    marginBottom: verticalScale(8),
+    height: verticalScale(150),
   },
   cardContainer: {
     ...commonStyles.shadowContainer,
@@ -448,8 +482,6 @@ const styles = StyleSheet.create({
     width: 75,
     borderRadius: 18,
     marginRight: moderateScale(15),
-    // borderWidth: 1,
-    // borderColor: COLORS.placeHolderTxtColor,
   },
   imgIcon: {
     height: 30,

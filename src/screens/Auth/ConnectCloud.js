@@ -16,13 +16,22 @@ import Loading from '../../components/Loading';
 import { storeData } from '../../configs/helperFunction';
 import { configUrl } from '../../configs/api';
 import { useCurrentUserProfileQuery } from '../../redux/api/user';
- 
+import { useNavigation } from '@react-navigation/native';
+import Orientation from 'react-native-orientation-locker';
+
 const DROPBOX_REDIRECT_URI = 'https://your-glitch-project.glitch.me/redirect';
 
 const ConnectCloud = () => {
+  const navigation = useNavigation()
+  React.useEffect(() => {
+    navigation.addListener("focus", () => {
+      Orientation.unlockAllOrientations();
+      Orientation.lockToPortrait();
+    });
+  }, [navigation]);
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth?.user);
- 
+
 
   const [showWebView, setShowWebView] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,7 +65,7 @@ const ConnectCloud = () => {
         if (tokens) {
           const { access_token, refresh_token, expires_in } = tokens;
           console.log('expires_inexpires_in', expires_in);
-          let expiresIn = Date.now()+parseInt(expires_in) * 1000 //convert in milisecond
+          let expiresIn = Date.now() + parseInt(expires_in) * 1000 //convert in milisecond
           dispatch(setAccessToken(access_token));
           await storeData('refresh_token', refresh_token)
           await storeData('token_expiry', expiresIn)
@@ -186,10 +195,10 @@ const ConnectCloud = () => {
       if (tokens) {
         const { access_token, refresh_token, expires_in } = tokens;
 
-        let expiresIn = Date.now()+parseInt(expires_in) * 1000 //convert in milisecond
+        let expiresIn = Date.now() + parseInt(expires_in) * 1000 //convert in milisecond
 
         dispatch(setAccessToken(access_token));
-        
+
         await storeData('refresh_token', refresh_token)
         await storeData('token_expiry', expiresIn.toString())
 

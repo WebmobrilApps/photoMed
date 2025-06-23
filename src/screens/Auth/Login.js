@@ -1,4 +1,4 @@
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
+import { Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
 import React, { useCallback, useState } from 'react';
 import WrapperContainer from '../../components/WrapperContainer';
 import { imagePath } from '../../configs/imagePath';
@@ -17,25 +17,33 @@ import { useDispatch, useSelector } from 'react-redux';
 import { saveUserData, setIsRemeberOn, setUserId } from '../../redux/slices/authSlice';
 import { useLoginMutation } from '../../redux/api/user';
 import { validateEmail } from '../../components/Validation';
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleSignin, GoogleSigninButton } from "@react-native-google-signin/google-signin";
 import { useSocialLoginMutation } from '../../redux/api/common';
 import Toast from 'react-native-simple-toast'
 import DeviceInfo from 'react-native-device-info';
 import { getData } from '../../configs/helperFunction';
 import { configUrl } from '../../configs/api';
-import {
-    appleAuth,
-} from '@invertase/react-native-apple-authentication';
+import { appleAuth, AppleButton } from '@invertase/react-native-apple-authentication';
 import { jwtDecode } from 'jwt-decode';
- import Config from 'react-native-config';
-const Login = () => {
-    const [socialLogin, { isLoading: loading, isSuccess, error }] = useSocialLoginMutation();
-    console.log( "error", error);
-    console.log( "APP_STORE_SECRET", Config.APP_STORE_SECRET);
+import { GOOGLE_CLIENT_ID } from "@env"
+import Orientation from 'react-native-orientation-locker';
 
+
+const Login = () => {
+
+    const navigation = useNavigation()
+    React.useEffect(() => {
+        navigation.addListener("focus", () => {
+            Orientation.unlockAllOrientations();
+            Orientation.lockToPortrait();
+        });
+    }, [navigation]);
+
+
+    const [socialLogin, { isLoading: loading, isSuccess, error }] = useSocialLoginMutation();
 
     GoogleSignin.configure({
-        webClientId: configUrl.GOOGLE_CLIENT_ID,
+        webClientId: GOOGLE_CLIENT_ID,
         offlineAccess: false,
         scopes: [
             "email",
@@ -50,7 +58,6 @@ const Login = () => {
             'https://www.googleapis.com/auth/drive.photos.readonly',
         ],
     });
-    const navigation = useNavigation();
     const isConnected = useSelector((state) => state.network.isConnected);
 
     const dispatch = useDispatch();
@@ -109,11 +116,13 @@ const Login = () => {
     };
 
     const handleLogin = async () => {
-        const fcmToken = await getData('fcmToken');
+        const fcmToken = await getData('fcmToken') || 'default_fcm_token'; // Default value if not set
+        const device_id = await DeviceInfo.getUniqueId() || 'default_device_id'; // Default value if not set
+
+
         console.log('fcmToken', fcmToken);
 
         const device_type = getPlatformValue();
-        const device_id = await DeviceInfo.getUniqueId();
         console.log('device_id', device_id);
         // setIsRemeberOn
         if (!isConnected) {
@@ -158,9 +167,9 @@ const Login = () => {
 
     async function onAppleButtonPress() {
         try {
-            const fcmToken = await getData('fcmToken')
-            const device_type = getPlatformValue();
-            const device_id = await DeviceInfo.getUniqueId();
+            const fcmToken = await getData('fcmToken') || 'default_fcm_token'; // Default value if not set
+            const device_type = getPlatformValue()  // Default value for Android
+            const device_id = await DeviceInfo.getUniqueId() || 'deault';
 
             // Start the sign-in request
             const appleAuthRequestResponse = await appleAuth.performRequest({
@@ -181,7 +190,7 @@ const Login = () => {
             console.log('---decodeddecoded--', decoded);
 
             if (!identityToken) {
-                throw new Error('No idToken received from Google Sign-In');
+                throw new Error('No idToken received from Apple Sign-In');
             }
 
             console.log('appleAuthRequestResponseappleAuthRequestResponse', appleAuthRequestResponse);
@@ -207,29 +216,30 @@ const Login = () => {
                 device_type,
                 fcmToken
             });
-            console.log('resultresult', result);
+
+            console.log('apple result', JSON.stringify(result, null, 2));
 
             if (result?.data?.succeeded) {
                 Toast.show(result?.data?.ResponseMessage)
+                dispatch(setUserId(result?.data?.ResponseBody?.userData?._id));
                 dispatch(saveUserData(result?.data?.ResponseBody?.token))
             }
 
         } catch (error) {
             console.error('Apple Sign-In Error:', error);
-            //   Toast.show(error.message || "Google SignIn Error");
         }
     };
 
 
     const onGoogleButtonPress = async () => {
         try {
-            const fcmToken = await getData('fcmToken')
+            const fcmToken = await getData('fcmToken') || 'default_fcm_token'; // Default value if not set
             const device_type = getPlatformValue();
-            const device_id = await DeviceInfo.getUniqueId();
-
+            const device_id = await DeviceInfo.getUniqueId() || 'default_device_id'; // Default value if not set
             await GoogleSignin.signOut();
             await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
             const data = await GoogleSignin.signIn();
+            console.log('data', data);
 
             if (!data.data.idToken) {
                 throw new Error('No idToken received from Google Sign-In');
@@ -247,6 +257,7 @@ const Login = () => {
                 });
 
                 if (result?.data?.succeeded) {
+                    dispatch(setUserId(result?.data?.ResponseBody?.userData?._id));
                     Toast.show(result?.data?.ResponseMessage)
                     dispatch(saveUserData(result?.data?.ResponseBody?.token))
                 }
@@ -312,16 +323,25 @@ const Login = () => {
                     <Text style={styles.orTxt}>Or</Text>
                     <View style={styles.devider} />
                 </View>
-                <View style={[commonStyles.flexView, { width: '20%', justifyContent: 'space-between' }]}>
-                    <TouchableOpacity onPress={() => onGoogleButtonPress()}>
-                        <Image style={{height:25,width:25}} source={imagePath.google} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => onAppleButtonPress()}>
-                        <Image  style={{height:25,width:25}} source={imagePath.applelogo} />
-                    </TouchableOpacity>
-                    {/*  <Image source={imagePath.facebook} style={{ marginHorizontal: 20 }} />
-                    <Image source={imagePath.insta} />*/}
-                </View>
+
+
+                <TouchableOpacity onPress={() => onGoogleButtonPress()} style={{ width: 220, height: 45, flexDirection: 'row', backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', borderRadius: 10 }}>
+                    <Image style={{ height: 18, width: 18, marginRight: 6 }} source={require('../../assets/images/icons/google.png')} />
+                    <Text style={{ color: '#fff', marginLeft: 6, fontSize: 16, fontWeight: '600' }}>Continue with Google</Text>
+                </TouchableOpacity>
+                {Platform.OS == 'ios' && <AppleButton
+                    buttonStyle={AppleButton.Style.WHITE}
+                    buttonType={AppleButton.Type.CONTINUE}
+                    style={{
+                        width: 220,// You must specify a width
+                        height: 45, // You must specify a height
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: COLORS.primary,
+                        marginTop: 10
+                    }}
+                    onPress={() => onAppleButtonPress()}
+                />}
                 {/* <LoginButton
                     onLoginFinished={
                     (error, result) => {
@@ -389,7 +409,7 @@ const styles = StyleSheet.create({
         fontFamily: FONTS.regular,
         fontSize: 10,
         color: COLORS.textColor,
-        marginTop: 20,
+        marginTop: 30,
     },
     scrollViewContentContainer: {
         flexGrow: 1,

@@ -1,4 +1,3 @@
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import RNFS from "react-native-fs";
 import { Alert, Platform } from "react-native";
 import Toast from "react-native-simple-toast";
@@ -9,39 +8,25 @@ import { store } from "../redux/store";
 import { logout, setAccessToken, } from "../redux/slices/authSlice";
 import { atob } from "react-native-quick-base64";
 const { dispatch } = store;
-// import uuid from "react-native-uuid";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
- 
 import { Image as ImageResizer } from "react-native-compressor";
-import {
-  GOOGLE_CLIENT_SECRET,
-  GOOGLE_CLIENT_ID,
-  DROPBOX_CLIENT_SECRET,
-  DROPBOX_CLIENT_ID,
-  BASEURL,
-  APP_STORE_SECRET
-} from "@env";
-import { useSelector } from "react-redux";
-console.log('GOOGLE_CLIENT_SECRET---', GOOGLE_CLIENT_SECRET);
 import axios from 'axios';
 import { setUserSubscription } from "../redux/slices/patientSlice";
-
+import { BASEURL,DROPBOX_CLIENT_ID,DROPBOX_CLIENT_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,APP_STORE_SECRET } from "@env"
 
 export const configUrl = {
   imageUrl: "http://52.22.241.165:10049/",
   BASE_URL: BASEURL,
-  defaultUser:
-    "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
+  defaultUser: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
   DROPBOX_CLIENT_ID: DROPBOX_CLIENT_ID,
   DROPBOX_CLIENT_SECRET: DROPBOX_CLIENT_SECRET,
   GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
+  GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET,
+  APP_STORE_SECRET: APP_STORE_SECRET
 };
 
 const BASE_URL = "https://www.googleapis.com/drive/v3";
-
-// helpers/GoogleDriveHelper.js
 
 export async function getFolderId(
   folderName,
@@ -1407,10 +1392,9 @@ export async function copyImageToGoogleDriveAllImagesFolder({
 
 
 export async function getUserPlans(token, isLast = true) {
-  let url = !isLast ? `${BASEURL}subscriptions` : `${BASEURL}subscriptions?latest=true`
-  console.log('----token---', token);
-  console.log('----url---', url);
-
+  let url = !isLast ? `${configUrl.BASE_URL}subscriptions` : `${configUrl.BASE_URL}subscriptions?latest=true`
+  console.log('plan response--', token);
+  console.log('plan response--', url);
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -1418,12 +1402,16 @@ export async function getUserPlans(token, isLast = true) {
       "Content-Type": "application/json",
     },
   });
+
+
+
   const data = await response.json();
+
   return data;
 }
 
 export async function addSubscriptions(token, data1) {
-  let url = `${BASEURL}subscriptions`
+  let url = `${configUrl.BASE_URL}subscriptions`
   try {
 
     const response = await fetch(url, {
@@ -1435,8 +1423,6 @@ export async function addSubscriptions(token, data1) {
       body: JSON.stringify(data1),
     });
     const data = await response.json();
-    console.log('addSubscriptionsaddSubscriptions error data', data);
-
     return data;
 
   } catch (error) {
@@ -1445,10 +1431,60 @@ export async function addSubscriptions(token, data1) {
   }
 }
 
+export const validateSubscription = async (token) => {
+
+  console.log("BASEUR", BASEURL + 'validate-receipt' + token)
+
+  try {
+    const response = await fetch(BASEURL + 'validate-receipt', {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Response status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.log('validateSubscription error', error);
+    return error
+  }
+}
+
+export const validateSubscription1 = async (token, receipt, platform = Platform.OS) => {
+  console.log('platformplatform', platform);
+  console.log('tokentoken', token);
+
+  try {
+    const response = await fetch(BASEURL + 'validate-receipt1', {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ // ✅ Correct key here
+        platform,
+        receiptData: receipt,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text(); // helpful for debugging backend response
+      throw new Error(`Response status: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.log('validateSubscription error', error);
+    return error;
+  }
+};
 
 export const validateReceiptData = async (receipt, platform = Platform.OS) => {
   const validProductIds = Platform.select({
-    ios: ['monthlysubscription123', 'yearlysubscription49', 'quarterlysubscription26'],
+    ios: ['quarterlysubscription_20', 'yearly_subscription_photomed', 'monthly_plan_photomed'],
     android: ['com.photomedPro.com'],
   });
 
@@ -1458,20 +1494,20 @@ export const validateReceiptData = async (receipt, platform = Platform.OS) => {
     if (platform === 'ios') {
       let response = await axios.post('https://buy.itunes.apple.com/verifyReceipt', {
         'receipt-data': receipt,
-        'password': APP_STORE_SECRET,
+        'password': configUrl.APP_STORE_SECRET,
         'exclude-old-transactions': true,
       });
 
       if (response.data.status === 21007) {
         response = await axios.post('https://sandbox.itunes.apple.com/verifyReceipt', {
           'receipt-data': receipt,
-          'password': APP_STORE_SECRET,
+          'password': configUrl.APP_STORE_SECRET,
           'exclude-old-transactions': true,
         });
       }
 
       const { status, latest_receipt_info, pending_renewal_info } = response.data;
-      console.log('===response===',response.data);
+      console.log('===response===', response.data);
 
       if (status !== 0) {
         console.warn('Apple receipt validation failed:', response.data);

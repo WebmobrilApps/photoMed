@@ -140,6 +140,9 @@ const CollageAdd = (props) => {
   };
 
   const handleSavePress = async () => {
+    console.log('selectedImageIndexselectedImageIndex', selectedImageIndex);
+    console.log('collageRefcollageRef', collageRef);
+
     if (selectedImageIndex) {
       setSelectedImageIndex(null);
     }
@@ -148,6 +151,7 @@ const CollageAdd = (props) => {
       // Set loading and capturing states
       setIsCapturingImage(true);
       setLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Capture the photo using the camera reference
       if (collageRef?.current) {
@@ -155,9 +159,8 @@ const CollageAdd = (props) => {
           format: "jpg",
           quality: 0.8,
         });
-       
-         
-        
+
+
 
         const fileDetails = [
           {
@@ -173,11 +176,14 @@ const CollageAdd = (props) => {
             patientId,
             patientName,
           };
+          console.log('vailidTokenvailidToken', vailidToken);
           const uploadedFileIds = await uploadFilesToPhotoMedFolder(
             fileDetails,
             patientInfo,
             accessToken
           );
+          console.log('uploadedFileIdsuploadedFileIds', uploadedFileIds);
+
           const uploadedImages = await Promise.all(
             uploadedFileIds.map(async (fileId) => {
               const image = await getImageDetailsById(fileId, accessToken);
@@ -212,6 +218,8 @@ const CollageAdd = (props) => {
         } else {
           await saveToGallery(photo.path);
         }
+      } else {
+        alert('Something went wrong Please try again')
       }
 
       setLoading(false);
@@ -246,9 +254,8 @@ const CollageAdd = (props) => {
       }
 
       // Define the destination path for saving the image
-      const destPath = `${
-        RNFS.PicturesDirectoryPath
-      }/collage_${Date.now()}.jpg`;
+      const destPath = `${RNFS.PicturesDirectoryPath
+        }/collage_${Date.now()}.jpg`;
 
       // Copy the captured image to the destination path
       await RNFS.copyFile(uri, destPath);
@@ -587,7 +594,7 @@ const CollageAdd = (props) => {
     }
 
     return (
-      <ViewShot ref={collageRef} style={styles.collageContainer}>
+      <>
         {layout.layout.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
             {row.map((colFlex, colIndex) => (
@@ -600,7 +607,9 @@ const CollageAdd = (props) => {
             ))}
           </View>
         ))}
-      </ViewShot>
+      </>
+
+
     );
   };
 
@@ -756,6 +765,10 @@ const CollageAdd = (props) => {
     checkIsEmpty(collageType, images);
   };
 
+  const handleCollagePress = async (type) => {
+    setSelectedCollageType(type);
+  };
+
   return (
     <WrapperContainer>
       <Loading visible={loading} />
@@ -764,20 +777,14 @@ const CollageAdd = (props) => {
         onPressDelete={() => setIsVisible(false)}
         visible={visible}
       />
-      {renderSelectedCollage()}
+      <ViewShot ref={collageRef} style={styles.collageContainer}>
+
+        {renderSelectedCollage()}
+      </ViewShot>
       {!isCapturingImage && (
         <>
           <View style={[commonStyles.flexView, styles.toolsContainer]}>
-            {/* <CommonTool
-                        onPress={() => setSelected('Zoom')}
-                        isSelected={selected === 'Zoom'}
-                        title="Zoom"
-                        Icon={
-                            <SearchIcon
-                                tintColor={selected === 'Zoom' ? COLORS.whiteColor : '#32327C'}
-                            />
-                        }
-                    /> */}
+             
             <CommonTool
               style={{ marginHorizontal: moderateScale(15) }}
               onPress={() => setSelected("College")}
@@ -814,12 +821,12 @@ const CollageAdd = (props) => {
                 },
               ]}
             >
-              <CollageLayout1 onPress={() => setSelectedCollageType("1")} />
-              <CollageLayout2 onPress={() => setSelectedCollageType("2")} />
-              <CollageLayout3 onPress={() => setSelectedCollageType("3")} />
-              <CollageLayout4 onPress={() => setSelectedCollageType("4")} />
-              <CollageLayout5 onPress={() => setSelectedCollageType("5")} />
-              <CollageLayout6 onPress={() => setSelectedCollageType("6")} />
+              <CollageLayout1 onPress={() => handleCollagePress("1")} />
+              <CollageLayout2 onPress={() => handleCollagePress("2")} />
+              <CollageLayout3 onPress={() => handleCollagePress("3")} />
+              <CollageLayout4 onPress={() => handleCollagePress("4")} />
+              <CollageLayout5 onPress={() => handleCollagePress("5")} />
+              <CollageLayout6 onPress={() => handleCollagePress("6")} />
             </View>
           )}
         </>
@@ -904,11 +911,11 @@ const styles = StyleSheet.create({
   },
   btnContainer: {
     backgroundColor: COLORS.primary,
-    height: moderateScale(30),
     width: moderateScale(80),
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 40,
+    paddingVertical: 10
   },
   txtStyle: {
     fontFamily: FONTS.medium,

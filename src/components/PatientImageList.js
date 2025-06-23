@@ -18,15 +18,11 @@ import {
 import FONTS from "../styles/fonts";
 import COLORS from "../styles/colors";
 import Tick from "../assets/SvgIcons/Tick";
-import { imagePath } from "../configs/imagePath";
-import { Image } from "react-native";
 import moment from "moment"
 const PatientImageList = memo(
   ({ data, selectedImages, toggleImageSelection, handleImagePress }) => {
     const [imageArr, setImageArr] = useState([]);
     const provider = useSelector((state) => state?.auth?.cloudType);
-
-    console.log("Platform.isPad", Platform.isPad);
 
     useEffect(() => {
       if (data && data.length > 0) {
@@ -74,9 +70,9 @@ const PatientImageList = memo(
         if (b.title === "Today") return 1;
         if (a.title === "Yesterday") return -1;
         if (b.title === "Yesterday") return 1;
-        return moment(b.title).valueOf()  - moment(a.title).valueOf();
+        return moment(b.title).valueOf() - moment(a.title).valueOf();
       });
-      
+
       //   Sort items within each group in descending order
       groupedData.forEach((group) => {
         group.data.sort((a, b) => {
@@ -93,10 +89,10 @@ const PatientImageList = memo(
 
     const onPresTitle = (item) => {
       let isIdIncluded = checkAllIdsIncluded(item?.data, selectedImages)
-      if(isIdIncluded){
-        item?.data && item?.data?.length>0 && toggleImageSelection(item.data,'removeall')
-      }else{
-        item?.data && item?.data?.length>0 && toggleImageSelection(item.data,'addall')
+      if (isIdIncluded) {
+        item?.data && item?.data?.length > 0 && toggleImageSelection(item.data, 'removeall')
+      } else {
+        item?.data && item?.data?.length > 0 && toggleImageSelection(item.data, 'addall')
       }
     }
 
@@ -113,6 +109,20 @@ const PatientImageList = memo(
       return allIncluded
     }
 
+    const formatData = (data, numColumns) => {
+      const fullRows = Math.floor(data.length / numColumns);
+      let remaining = data.length - fullRows * numColumns;
+
+      const newData = [...data];
+      while (remaining !== 0 && remaining < numColumns) {
+        newData.push({ empty: true });
+        remaining++;
+      }
+
+      return newData;
+    };
+
+
     return (
       <FlatList
         data={imageArr}
@@ -125,7 +135,7 @@ const PatientImageList = memo(
           console.log('isAllIdsIncludedisAllIdsIncluded', isAllIdsIncluded)
           return (
             <>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'space-between', width: "100%",}}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'space-between', width: "100%", }}>
 
                 <Text
                   style={{
@@ -148,70 +158,60 @@ const PatientImageList = memo(
                 </TouchableOpacity>
 
               </View>
-              <View style={{ width: "100%", flexDirection: "row", flexWrap: "wrap", justifyContent: 'flex-start' }}>
+              <View style={{ width: "100%", flexDirection: "row", flexWrap: "wrap", justifyContent: 'space-between' }}>
                 {
+                  section?.data && formatData(section?.data, 3)?.map((item, index) => {
+                    console.log('formatData formatData formatData', formatData(section?.data, 3))
 
-                  section?.data && section?.data?.map((item, index) => {
-
-                    const selected = selectedImages.includes(
+                    const selected = !item?.empty && selectedImages.includes(
                       provider == "google" ? item.id : item.path_display
                     );
-                    return (
-                      <TouchableOpacity
-                        onPress={() => handleImagePress([item])} // Adjusted to pass the item
-                        onLongPress={() => toggleImageSelection([item])} // Pass item for selection
-                        style={{
-                          borderRadius: 22,
-                          overflow: "hidden",
-                          alignItems: "center",
-                          marginHorizontal: width * 0.025,
-                          marginVertical: width * 0.015,
-                        }}
-                      >
-                        <ImageWithLoader
-                          uri={
-                            provider === "google"
-                              ? item.webContentLink
-                              : item.publicUrl
-                          }
-                          // resizeMode={Fas}
+                    return item?.empty
+                      ?
+                      <View style={{
+                        height: width * 0.29,
+                        width: width * 0.29,
+                      }}></View>
+                      :
+                      (
+                        <TouchableOpacity
+                          onPress={() => handleImagePress([item], index, section?.data)} // Adjusted to pass the item
+                          onLongPress={() => toggleImageSelection([item])} // Pass item for selection
                           style={{
-                            height: width * 0.25,
-                            width: width * 0.25,
+                            borderRadius: 22,
+                            overflow: "hidden",
+                            alignItems: "center",
+                            marginVertical: width * 0.009,
                           }}
-                        />
-                        {selected && (
-                          <View
-                            style={[
-                              styles.check,
-                              { position: "absolute", left: 10, top: 10 },
-                            ]}
-                          >
-                            <Tick height={10} width={10} />
-                          </View>
-                        )}
-                      </TouchableOpacity>
+                        >
+                          <ImageWithLoader
+                            uri={
+                              provider === "google"
+                                ? item.webContentLink
+                                : item.publicUrl
+                            }
+                            // resizeMode={Fas}
+                            style={{
+                              height: width * 0.29,
+                              width: width * 0.29,
+                            }}
+                          />
+                          {selected && (
+                            <View
+                              style={[
+                                styles.check,
+                                { position: "absolute", left: 10, top: 10 },
+                              ]}
+                            >
+                              <Tick height={10} width={10} />
+                            </View>
+                          )}
+                        </TouchableOpacity>
 
-                    )
+                      )
                   })
                 }
               </View>
-              {/* <FlatList
-                numColumns={3}
-                contentContainerStyle={{
-                  padding: 5,
-                  paddingBottom: verticalScale(70),
-                  width: "100%",
-                  justifyContent: "space-between",
-                  zIndex: 99999,
-                  backgroundColor: "red",
-                }}
-                showsVerticalScrollIndicator={false}
-                data={section.data}
-                renderItem={({ item }) => {
-
-                }}
-              /> */}
             </>
           );
         }}

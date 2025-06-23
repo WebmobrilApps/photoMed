@@ -7,7 +7,7 @@ const ImageWithLoader = ({ uri, style,resizeMode,containerStyle }) => {
   const [loading, setLoading] = useState(true);
 
   return (
-    <View style={containerStyle}>
+    <View style={[containerStyle,style]}>
       {loading &&
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#000" />

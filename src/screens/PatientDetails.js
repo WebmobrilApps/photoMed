@@ -20,7 +20,7 @@ import importIcon from "../assets/SvgIcons/Import";
 import Tick from "../assets/SvgIcons/Tick";
 import AddCamera from "../assets/SvgIcons/AddCamera";
 import ImageCropPicker from "react-native-image-crop-picker";
-import { navigate } from "../navigators/NavigationService";
+import { goBack, navigate } from "../navigators/NavigationService";
 import ScreenName from "../configs/screenName";
 import {
   useDeleteFileFromDropboxMutation,
@@ -105,47 +105,47 @@ const PatientDetails = (props) => {
   const [deleteFile, { isLoading: loaded, isError, isSuccess }] =
     useDeleteFileFromDropboxMutation();
 
-    const toggleImageSelection = (items, type = "default") => {
-      const isGoogle = provider === "google";
-      const getImagePath = (item) => (isGoogle ? item.id : item.path_display);
-    
-      let newSelectedImages = [...selectedImages];
-      let newCollageImages = [...collageImages];
-    
-      const shouldRemove = type === "removeall";
-    
-      items.forEach((item) => {
-        const imagePath = getImagePath(item);
-        const isSelected = newSelectedImages.includes(imagePath);
-    
-        if (type === "default") {
-          if (isSelected) {
-            newSelectedImages = newSelectedImages.filter((img) => img !== imagePath);
-            newCollageImages = newCollageImages.filter(
-              (img) => getImagePath(img) !== imagePath
-            );
-          } else {
+  const toggleImageSelection = (items, type = "default") => {
+    const isGoogle = provider === "google";
+    const getImagePath = (item) => (isGoogle ? item.id : item.path_display);
+
+    let newSelectedImages = [...selectedImages];
+    let newCollageImages = [...collageImages];
+
+    const shouldRemove = type === "removeall";
+
+    items.forEach((item) => {
+      const imagePath = getImagePath(item);
+      const isSelected = newSelectedImages.includes(imagePath);
+
+      if (type === "default") {
+        if (isSelected) {
+          newSelectedImages = newSelectedImages.filter((img) => img !== imagePath);
+          newCollageImages = newCollageImages.filter(
+            (img) => getImagePath(img) !== imagePath
+          );
+        } else {
+          newSelectedImages.push(imagePath);
+          newCollageImages.push(item);
+        }
+      } else {
+        if (shouldRemove) {
+          newSelectedImages = newSelectedImages.filter((img) => img !== imagePath);
+          newCollageImages = newCollageImages.filter((img) => getImagePath(img) !== imagePath);
+        } else {
+          if (!isSelected) {
             newSelectedImages.push(imagePath);
             newCollageImages.push(item);
           }
-        } else {
-          if (shouldRemove) {
-            newSelectedImages = newSelectedImages.filter((img) => img !== imagePath);
-            newCollageImages = newCollageImages.filter((img) => getImagePath(img) !== imagePath);
-          } else {
-            if (!isSelected) {
-              newSelectedImages.push(imagePath);
-              newCollageImages.push(item);
-            }
-          }
         }
-      });
-    
-      setSelectedImages(newSelectedImages);
-      setCollageImage(newCollageImages);
-      setSelectionMode(newSelectedImages.length > 0);
-    };
-    
+      }
+    });
+
+    setSelectedImages(newSelectedImages);
+    setCollageImage(newCollageImages);
+    setSelectionMode(newSelectedImages.length > 0);
+  };
+
 
   const saveCount = async (count) => {
     const id = preData._id;
@@ -239,7 +239,6 @@ const PatientDetails = (props) => {
       const publicImages = await Promise.all(
         uploadedImages.map(async (image) => {
           const publicUrl = await setFilePublic(image.id, accessToken);
-          // console.log('Public URL for image:', publicUrl);
           return { ...image, publicUrl };
         })
       );
@@ -410,6 +409,8 @@ const PatientDetails = (props) => {
       saveCount(refreshedImageUrls == [] ? 0 : refreshedImageUrls?.length);
       setSelectedImages([]);
       setIsVisible(false);
+      setCollageImage([]);
+      // setSelectionMode(newSelectedImages.length > 0);
       // console.log('All files deleted successfully');
     } catch (error) {
       // console.error('Error deleting files:', error);
@@ -429,6 +430,7 @@ const PatientDetails = (props) => {
       );
       dispatch(setPatientImages(filteredData));
       setSelectedImages([]);
+      setCollageImage([]);
       saveCount(filteredData?.length ? filteredData?.length : 0);
       Toast.show("images deleted successfully");
     } catch (error) {
@@ -451,19 +453,24 @@ const PatientDetails = (props) => {
       provider,
     });
   };
-  const handleImagePress = (item) => {
+  const handleImagePress = (item, index, allData) => {
     if (isSelectionMode) {
       toggleImageSelection(item);
     } else {
+      let arr = [...allData];
+      if (index > -1 && index < arr.length) {
+        const spliceData = arr.splice(index, 1)[0]; // Remove item
+        arr.unshift(spliceData); // Add at the beginning
+      }
       navigate(ScreenName.IMAGE_VIEWER, {
-        preData: item[0],
+        preData: arr,
         accessToken,
         ScreenName: "gallery",
         imageData: provider == "google" ? patientImages : imageUrls,
       });
     }
   };
-  
+
   const CommonComp = ({ IconComponent, title, onPress, commonContainer = null, titleStyle = null }) => {
     return (
       <View style={{ justifyContent: "center", alignItems: "center" }}>
@@ -479,6 +486,16 @@ const PatientDetails = (props) => {
 
   return (
     <WrapperContainer wrapperStyle={[{ padding: 15 }]}>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => goBack()} style={{ marginLeft: 10 }}>
+          <Image
+            style={styles.backIcon}
+            source={require('../assets/images/icons/backIcon.png')}
+          />
+        </TouchableOpacity>
+        <Text style={{ fontSize: 15, color: '#424242', marginLeft: -40 }}>Patient Details</Text>
+        <View style={{ width: '40' }} />
+      </View>
       <DeleteImagePopUp
         title={`Delete ${selectedImages.length} selected photo`}
         onPressCancel={() => setIsVisible(false)}
@@ -561,11 +578,11 @@ const PatientDetails = (props) => {
             data={provider == "google" ? patientImages : imageUrls}
             selectedImages={selectedImages}
             selectAllImages={() => selectAllImages()}
-            handleImagePress={(item) => {
-              handleImagePress(item);
+            handleImagePress={(item, index, allData) => {
+              handleImagePress(item, index, allData);
             }}
-            toggleImageSelection={(item,type='default') => {
-              toggleImageSelection(item,type);
+            toggleImageSelection={(item, type = 'default') => {
+              toggleImageSelection(item, type);
             }}
           />
           <View style={styles.bottomBottonsWrapper}>
@@ -670,6 +687,10 @@ const PatientDetails = (props) => {
 export default PatientDetails;
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between"
+  },
+  backIcon: { marginBottom: 10, height: 40, width: 40 },
   cardContainer: {
     paddingHorizontal: moderateScale(20),
     paddingVertical: moderateScale(15),

@@ -91,7 +91,7 @@ const MainStack = () => {
         name={ScreenName.PATIENT_DETAILS}
         component={PatientDetails}
         options={{
-          headerShown: true,
+          headerShown: false,
           headerTintColor: COLORS.textColor,
           headerLeft: () => {
             return (

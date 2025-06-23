@@ -194,7 +194,7 @@ const CameraGrid = (props) => {
       compressionMethod: "auto",
       maxWidth: 1200,
       maxHeight: 1200,
-      quality: 0.5,
+      quality: 0.1,
     });
     formData.append('profile', {
       uri: imgUri,

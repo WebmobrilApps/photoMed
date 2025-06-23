@@ -104,9 +104,10 @@ const SignUp = () => {
         // Proceed with API call or further actions
         try {
             const device_type = getPlatformValue();
-            const device_id = await DeviceInfo.getUniqueId();
-            const fcmToken = await getData('fcmToken')
+            const device_id = await DeviceInfo.getUniqueId() || 'default_device_id'; // Default value if not set
+            const fcmToken = await getData('fcmToken') || 'abcd1234'; // Default value if not set
             const response = await signUpMutation({ full_name, email, password, mobile, device_type, device_id, fcmToken });
+            console.log('responseresponse',JSON.stringify(response, null, 2));
 
             if (response.data?.succeeded) {
                 // Toast.show(`Your otp is : ${response.data.ResponseBody.otp}`);

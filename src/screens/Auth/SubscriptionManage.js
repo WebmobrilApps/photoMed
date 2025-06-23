@@ -11,30 +11,24 @@ import {
   Linking,
 } from 'react-native';
 import { connect } from 'react-redux';
-import { getUserPlans, addSubscriptions, validateReceiptData } from '../../configs/api';
+import { getUserPlans, addSubscriptions, validateReceiptData, validateSubscription1, validateSubscription } from '../../configs/api';
 import Loading from '../../components/Loading';
-import { goBack } from '../../navigators/NavigationService';
+import { goBack, navigate } from '../../navigators/NavigationService';
 
 import {
   initConnection,
   endConnection,
-  getProducts,
-  requestPurchase,
   purchaseErrorListener,
   purchaseUpdatedListener,
-  ProductPurchase,
-  PurchaseError,
   flushFailedPurchasesCachedAsPendingAndroid,
   acknowledgePurchaseAndroid,
   finishTransaction,
-  getPurchaseHistory,
   requestSubscription,
   getSubscriptions,
-  getAvailablePurchases,
-  clearTransactionIOS,
 } from 'react-native-iap';
+import ScreenName from '../../configs/screenName';
 const itemSkus = Platform.select({
-  ios: ['monthlysubscription123', 'yearlysubscription49', 'quarterlysubscription26'],
+  ios: ['quarterlysubscription_20', 'yearly_subscription_photomed', 'monthly_plan_photomed'],
   android: ['com.photomedPro.com'],
 });
 
@@ -53,7 +47,10 @@ class SubscriptionManage extends Component {
     };
   }
 
+
+
   async componentDidMount() {
+
 
     this.props.navigation.addListener('focus', () => {
       this.fetchUserSubscription();
@@ -83,9 +80,8 @@ class SubscriptionManage extends Component {
         this.purchaseUpdateSubscription = purchaseUpdatedListener(
           async (purchase) => {
             try {
-              console.log('Processing purchase:', purchase.transactionId);
+              console.log('Processing purchase:', purchase);
               console.log('apistatus:', this.state.apiStatus);
-
 
               const receipt = purchase.transactionReceipt
                 ? purchase.transactionReceipt
@@ -96,10 +92,8 @@ class SubscriptionManage extends Component {
                 });
 
               if (this.state.apiStatus) {
-                const validReceipt = await validateReceiptData(receipt, Platform.OS);
-                if (validReceipt) {
-                  await this.addSubscriptionToBackend(purchase, validReceipt);
-                }
+                  await this.addSubscriptionToBackend(purchase);
+                  this.setState({ apiStatus: false })
               }
 
               if (Platform.OS === 'ios') {
@@ -107,23 +101,25 @@ class SubscriptionManage extends Component {
               } else {
                 await this.acknowledgePurchaseAndroid(purchase.purchaseToken, purchase.developerPayloadAndroid, purchase);
               }
+              this.setState({ loading: false });
             } catch (err) {
+              this.setState({ loading: false, apiStatus: false });
               console.warn('Purchase processing error:', err);
               Alert.alert('Error', 'Failed to process purchase.');
-              this.setState({ apiStatus: false })
             }
-
           },
         );
 
         this.purchaseErrorSubscription = purchaseErrorListener(
           (error) => {
-
+            this.setState({ loading: false });
             console.log('purchaseErrorListener', error);
           },
         );
       });
   }
+
+
   componentWillUnmount() {
     if (this.purchaseUpdateSubscription) {
       this.purchaseUpdateSubscription.remove();
@@ -144,6 +140,8 @@ class SubscriptionManage extends Component {
       this.setState({ loading: true });
       await initConnection();
       const subs = await getSubscriptions({ skus: itemSkus });
+      // console.log('Available subscriptions:', subs);
+
       this.setState({ subscriptions: subs, loading: false });
     } catch (err) {
       Alert.alert('Error', 'Failed to initialize in-app purchases.');
@@ -170,26 +168,61 @@ class SubscriptionManage extends Component {
   };
 
   fetchUserSubscription = async () => {
-    const { token } = this.props;
     try {
       this.setState({ loadingUserSub: true });
-      const userSub = await getUserPlans(token);
-      const responseBody = userSub?.ResponseBody;
-      if (responseBody?.receiptData) {
-        const validReceipt = await validateReceiptData(responseBody.receiptData, responseBody.platform);
-        if (validReceipt) {
+      let userSub = await validateSubscription(this.props.route.params.token);
+      if (userSub?.ResponseBody?.receiptData) {
+        if (userSub && userSub?.succeeded) {
           this.setState({
-            userSubscription: validReceipt,
-            selectedPlan: validReceipt.productId,
+            userSubscription: userSub?.ResponseBody,
+            selectedPlan: userSub?.ResponseBody?.productId,
           });
         }
       }
     } catch (err) {
+      console.log('Error', 'Failed to fetch subscription details.', err);
       Alert.alert('Error', 'Failed to fetch subscription details.');
     } finally {
       this.setState({ loadingUserSub: false });
     }
+
+
+    //   const { token } = this.props;
+    //   try {
+    //     this.setState({ loadingUserSub: true });
+    //     const userSub = await getUserPlans(token);
+
+
+
+    //     const responseBody = userSub?.ResponseBody;
+    //     if (responseBody?.receiptData) {
+    //       const validReceipt1 = await validateSubscription1(this.props.route.params.token, responseBody.receiptData, responseBody.platform);
+    //       console.log('validReceipt1validReceipt1-', validReceipt1);
+    //       if (validReceipt1 && validReceipt1?.succeeded) {
+    //          this.setState({
+    //           userSubscription: validReceipt1?.ResponseBody,
+    //           selectedPlan: validReceipt1?.ResponseBody?.productId,
+    //         });
+    //       }
+    //       // const validReceipt = await validateReceiptData(responseBody.receiptData, responseBody.platform);
+    //       // if (validReceipt) {
+    //       //   this.setState({
+    //       //     userSubscription: validReceipt,
+    //       //     selectedPlan: validReceipt.productId,
+    //       //   });
+    //       // }
+    //     }
+    //   } catch (err) {
+    //     console.log('Error', 'Failed to fetch subscription details.', err);
+    //     Alert.alert('Error', 'Failed to fetch subscription details.');
+    //   } finally {
+    //     this.setState({ loadingUserSub: false });
+    //   }
+    // };
+
+
   };
+
 
   handleSubscription = async () => {
     const { selectedPlan } = this.state;
@@ -203,10 +236,9 @@ class SubscriptionManage extends Component {
     } catch (err) {
       Alert.alert('Purchase Error', err.message);
       this.setState({ apiStatus: false });
-    } finally {
-      this.setState({ loading: false });
     }
-  };
+  }
+
 
   handleCancelSubscription = async () => {
     const { selectedPlan } = this.state;
@@ -225,15 +257,15 @@ class SubscriptionManage extends Component {
   };
 
 
-  addSubscriptionToBackend = async (purchase, validReceipt) => {
+  addSubscriptionToBackend = async (purchase) => {
     const { token } = this.props;
     try {
       const data = {
         transactionId: purchase.transactionId,
-        planeType: validReceipt.productId,
+        planeType: purchase.productId,
         transactionDate: purchase.transactionDate,
         startDate: purchase.transactionDate,
-        endDate: validReceipt.expirationDate,
+        endDate:  purchase.transactionDate,
         platform: Platform.OS,
         receiptData: Platform.OS === 'ios' ? purchase.transactionReceipt : purchase.purchaseToken,
         status: 1,
@@ -243,10 +275,11 @@ class SubscriptionManage extends Component {
       await this.fetchUserSubscription();
       this.setState({ apiStatus: false, loading: false });
       Alert.alert('Success', 'Subscription added successfully.');
+      navigate(ScreenName.HOME)
     } catch (err) {
       Alert.alert('Error', 'Failed to save subscription to backend.');
     } finally {
-      this.setState({ apiStatus: false,loading:false });
+      this.setState({ apiStatus: false, loading: false });
     }
   };
 
@@ -281,7 +314,7 @@ class SubscriptionManage extends Component {
 
           <ScrollView contentContainerStyle={styles.scrollContent}>
             {subscriptions?.length > 0 &&
-              subscriptions.map((plan) => {
+              subscriptions.map((plan, index) => {
                 const isSelected = selectedPlan === plan.productId;
                 return (
                   <TouchableOpacity
@@ -293,6 +326,7 @@ class SubscriptionManage extends Component {
                       <Text style={styles.planTitle}>{plan.title}</Text>
                       <Text style={styles.planPrice}>{plan.localizedPrice}</Text>
                     </View>
+                    <Text style={styles.planText}>• {plan.description}</Text>
                     <Text style={styles.planText}>• Everything in Standard Plan</Text>
                     <Text style={styles.planText}>• Exclusive Content & Tips</Text>
                     <View style={styles.radioWrapper}>

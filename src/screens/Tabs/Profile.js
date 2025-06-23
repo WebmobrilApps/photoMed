@@ -1,4 +1,4 @@
-import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { FlatList, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useState } from 'react'
 import WrapperContainer from '../../components/WrapperContainer'
 import commonStyles from '../../styles/commonStyles'
@@ -27,8 +27,8 @@ const Profile = (props) => {
   const token = useSelector((state) => state.auth?.user);
   const provider = useSelector((state) => state.auth.cloudType);
 
-  const [deleteAccount,{isLoading:loading}] = useDeleteAccountMutation();
-  const { data: userDetail, isLoading, error,refetch } = useCurrentUserProfileQuery({ token });
+  const [deleteAccount, { isLoading: loading }] = useDeleteAccountMutation();
+  const { data: userDetail, isLoading, error, refetch } = useCurrentUserProfileQuery({ token });
   const user = userDetail?.ResponseBody;
   // console.log('user',user);
 
@@ -46,11 +46,11 @@ const Profile = (props) => {
       refetch(); // Refetch data when screen comes into focus
     }, [refetch])
   );
-  
-  
+
+
   const handleDeleteAccount = async () => {
     try {
-      const result = await deleteAccount({ token, id:user._id}).unwrap();
+      const result = await deleteAccount({ token, id: user._id }).unwrap();
       setDeleteVisible(false)
       // Optionally, trigger a success notification or redirect the user
       Toast.show(result?.ResponseMessage)
@@ -63,7 +63,7 @@ const Profile = (props) => {
   };
 
 
-  
+
 
   const data = [
     {
@@ -76,29 +76,30 @@ const Profile = (props) => {
       name: 'Change Password',
       screenName: ScreenName.CHANGE_PASSWORD,
     }] : []),
-    {
+
+    ...(Platform.OS == 'ios' ? [{
       id: 8,
       name: 'Manage Subscription',
       screenName: ScreenName.SUB_MANAGE,
-      slug:'terms-and-conditions'
-    },
+    }] : []),
+
     {
       id: 4,
       name: 'Privacy Policy',
       screenName: ScreenName.TERMS,
-      slug:'privacy-policy'
+      slug: 'privacy-policy'
     },
     {
       id: 5,
       name: 'Legal Content',
       screenName: ScreenName.TERMS,
-      slug:'legal-content'
+      slug: 'legal-content'
     },
     {
       id: 6,
       name: 'About Us',
       screenName: ScreenName.TERMS,
-      slug:'about-us'
+      slug: 'about-us'
     },
     {
       id: 7,
@@ -107,11 +108,13 @@ const Profile = (props) => {
     },
   ];
 
-  const navigateToNextScreen = (screen,slug,name) => {
+  const navigateToNextScreen = (screen, slug, name) => {
     if (screen == ScreenName.EDIT_PROFILE) {
-      navigate(screen,{user})
+      navigate(screen, { user })
+    } else if (screen == ScreenName.SUB_MANAGE) {
+      navigate(screen, { token: token })
     } else {
-      navigate(screen,{slug:slug,screenName:name})
+      navigate(screen, { slug: slug, screenName: name })
     }
   }
 
@@ -127,60 +130,60 @@ const Profile = (props) => {
 
   return (
     <WrapperContainer wrapperStyle={[commonStyles.innerContainer, styles.container]}>
-      <Loading visible={isLoading || loading}/>
+      <Loading visible={isLoading || loading} />
       <AccountPopUp title={'Logout'}
-      onPressCancel={() =>setLogoutVisible(false)}
-      onPressSuccess={() =>dispatch(logout())}
-      subTitle={'Are you sure you want to logout from Photomed Pro? this will end your current session.'}
-      visible={logoutVisible}/>
+        onPressCancel={() => setLogoutVisible(false)}
+        onPressSuccess={() => dispatch(logout())}
+        subTitle={'Are you sure you want to logout from Photomed Pro? this will end your current session.'}
+        visible={logoutVisible} />
       <AccountPopUp title={'Delete Account'}
-      onPressCancel={() =>setDeleteVisible(false)}
-      onPressSuccess={handleDeleteAccount}
-      subTitle={'Are you sure you want to Delete \n your account? This action can not be undone.'}
-      visible={deleteVisible}/>
+        onPressCancel={() => setDeleteVisible(false)}
+        onPressSuccess={handleDeleteAccount}
+        subTitle={'Are you sure you want to Delete \n your account? This action can not be undone.'}
+        visible={deleteVisible} />
       <View style={styles.profileContainer}>
         <Image
-            source={{uri:user?.profile? configUrl.imageUrl+user?.profile :configUrl.defaultUser}} 
-            style={styles.userIcon}
+          source={{ uri: user?.profile ? configUrl.imageUrl + user?.profile : configUrl.defaultUser }}
+          style={styles.userIcon}
         />
-        <TouchableOpacity onPress={() => navigate(ScreenName.EDIT_PROFILE,{user})}
-        style={styles.editIconContainer}>
+        <TouchableOpacity onPress={() => navigate(ScreenName.EDIT_PROFILE, { user })}
+          style={styles.editIconContainer}>
           <Image source={imagePath.edit} />
         </TouchableOpacity>
       </View>
       <Text style={styles.titleStyle}>{user?.full_name}</Text>
       {provider == 'google' ? (
-  <View style={styles.providerStyle}>
-    <GoogleDriveIcon />
-    <Text style={styles.providerTxt}>{'Connected Via '+ provider.charAt(0).toUpperCase() + provider.slice(1)}</Text>
-  </View>
-) : (
-  <View style={styles.providerStyle}>
-    <DropboxIcon />
-    <Text style={styles.providerTxt}>{'Connected Via '+provider.charAt(0).toUpperCase() + provider.slice(1)}</Text>
-  </View>
-)}    
-      <View style={{flex:1,marginBottom:verticalScale(50)}}>
-      <FlatList
-      showsVerticalScrollIndicator={false}
-      data={data}
-      renderItem={({item}) =>{
-        return(
-          <CommonComp
-            key={item.id}
-            onPress={() => navigateToNextScreen(item.screenName,item?.slug,item.name)}
-            title={item.name} />
-        )
-      }}
-      ListFooterComponent={
-        <>
-        <CommonComp arrow
-      onPress={() => setLogoutVisible(true)}
-        title={'Logout'} />
-      <CommonComp arrow
-      onPress={() => setDeleteVisible(true)}
-        title={'Delete Account'} /></>
-      }/>
+        <View style={styles.providerStyle}>
+          <GoogleDriveIcon />
+          <Text style={styles.providerTxt}>{'Connected Via ' + provider.charAt(0).toUpperCase() + provider.slice(1)}</Text>
+        </View>
+      ) : (
+        <View style={styles.providerStyle}>
+          <DropboxIcon />
+          <Text style={styles.providerTxt}>{'Connected Via ' + provider.charAt(0).toUpperCase() + provider.slice(1)}</Text>
+        </View>
+      )}
+      <View style={{ flex: 1, marginBottom: verticalScale(50) }}>
+        <FlatList
+          showsVerticalScrollIndicator={false}
+          data={data}
+          renderItem={({ item }) => {
+            return (
+              <CommonComp
+                key={item.id}
+                onPress={() => navigateToNextScreen(item.screenName, item?.slug, item.name)}
+                title={item.name} />
+            )
+          }}
+          ListFooterComponent={
+            <>
+              <CommonComp arrow
+                onPress={() => setLogoutVisible(true)}
+                title={'Logout'} />
+              <CommonComp arrow
+                onPress={() => setDeleteVisible(true)}
+                title={'Delete Account'} /></>
+          } />
       </View>
 
     </WrapperContainer>
@@ -237,21 +240,21 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(10),
     marginBottom: verticalScale(10)
   },
-  providerStyle:{
-    backgroundColor:COLORS.primary,
-    flexDirection:'row',
-    alignSelf:'center',
-    alignItems:'center',
-    borderRadius:20,
-    justifyContent:'center',
-    paddingHorizontal:20,
-    marginBottom:20,
-    paddingVertical:verticalScale(5)
+  providerStyle: {
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    paddingVertical: verticalScale(5)
   },
-  providerTxt:{
-    fontFamily:FONTS.medium,
-    color:COLORS.whiteColor,
-    fontSize:12,
-    marginLeft:5
+  providerTxt: {
+    fontFamily: FONTS.medium,
+    color: COLORS.whiteColor,
+    fontSize: 12,
+    marginLeft: 5
   }
 })
