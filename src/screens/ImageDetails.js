@@ -81,19 +81,13 @@ const ImageDetails = (props) => {
     folderName: `${patientName + patientId}`,
     accessToken,
   });
-  const [postCatSubcat, { isLoading: catSubPostLoading }] =
-    usePostDrCategorySubcatMutation();
-  const {
-    data: mixedCatData,
-    error: mixedCatError,
-    isLoading: mixedCatLoading,
-    refetch: catSubcatRefetch,
-  } = useGetMixedCategoriesQuery({ token });
-  const [deletTagSubtag, { isLoading: deletTagLoading }] =
-    useDeleteTagSubTagMutation();
 
-  const [postPatientTags, { isLoading: postPatientTagsLoading }] =
-    usePostPatientTagsMutation();
+  const [postCatSubcat, { isLoading: catSubPostLoading }] = usePostDrCategorySubcatMutation();
+
+  const { data: mixedCatData, error: mixedCatError, isLoading: mixedCatLoading, refetch: catSubcatRefetch } = useGetMixedCategoriesQuery({ token });
+  const [deletTagSubtag, { isLoading: deletTagLoading }] = useDeleteTagSubTagMutation();
+
+  const [postPatientTags, { isLoading: postPatientTagsLoading }] = usePostPatientTagsMutation();
 
   const [selectedCat, setSelectedCat] = useState("");
   const [selectedSubcat, setSelectedSubcat] = useState("");
@@ -126,16 +120,16 @@ const ImageDetails = (props) => {
       let formattedSubcatData =
         commonsubCat.length > 0
           ? commonsubCat.map((item) => ({
-              ...item,
-              name: item.categoryname || item.subcategoryname,
-            }))
+            ...item,
+            name: item.categoryname || item.subcategoryname,
+          }))
           : [];
       let formatedCatData =
         commonCat.length > 0
           ? commonCat.map((item) => ({
-              ...item,
-              name: item.categoryname,
-            }))
+            ...item,
+            name: item.categoryname,
+          }))
           : [];
 
       formatedCatData.push({ name: "add new", _id: 0 });
@@ -177,7 +171,7 @@ const ImageDetails = (props) => {
     return `${hours}:${minutes} ${ampm}`;
   };
 
-  
+
 
   console.log("tokennnnn", token);
 

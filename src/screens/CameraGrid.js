@@ -8,6 +8,7 @@ import {
   Dimensions,
   FlatList,
   Alert,
+  useWindowDimensions,
 } from "react-native";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import WrapperContainer from "../components/WrapperContainer";
@@ -67,6 +68,7 @@ import {
   getImageDetailsById,
   generateUniqueKey,
   uploadCaptureFilesToPhotoMedFolder,
+  configUrl,
 } from "../configs/api";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -75,14 +77,18 @@ import {
 } from "../redux/api/common";
 import ImageWithLoader from "../components/ImageWithLoader";
 import DeleteImagePopUp from "../components/DeleteImagePopUp";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { Image as ImageResizer } from "react-native-compressor";
 import SelectedGridOverlay from "../components/SelectedGridOverlay";
 import imagePaths from "../assets/images";
 import { setCurrentPatient, setPatientImages } from "../redux/slices/patientSlice";
 import FastImage from "react-native-fast-image";
+import Orientation from "react-native-orientation-locker";
 const windowWidth = Dimensions.get("window").width;
-import { BASEURL } from "@env";
+const windowHeight = Dimensions.get("window").height;
+
+
+
 const CameraGrid = (props) => {
   const dispatch = useDispatch();
   const cameraRef = useRef(null);
@@ -159,6 +165,7 @@ const CameraGrid = (props) => {
 
   }, [props.route.params]);
 
+
   useFocusEffect(
     useCallback(() => {
       setPercentage(50);
@@ -202,7 +209,7 @@ const CameraGrid = (props) => {
       type: imgData.type || "image/jpeg",
     });
 
-    fetch(`${BASEURL}updatepatient/${id}`, {
+    fetch(`${configUrl.BASE_URL}updatepatient/${id}`, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -334,7 +341,7 @@ const CameraGrid = (props) => {
       console.log('verrorerror', error);
     }
   }
-  
+
   const gridData = [
     { id: 1, icon: Grid33, message: "Grid 3x3" },
     { id: 2, icon: Grid44, message: "Grid 4x4" },
@@ -526,7 +533,8 @@ const CameraGrid = (props) => {
   ];
 
   const device = useCameraDevice(isFrontCamera ? "front" : "back");
-  const { width } = Dimensions.get("window");
+  let { width } = useWindowDimensions();
+
   const aspectRatios = {
     "16:9": 16 / 9,
     "4:3": 4 / 3,
@@ -603,6 +611,9 @@ const CameraGrid = (props) => {
     setDeletePopup(false)
     setSelectedImgIndex(-1)
   }
+
+
+
   return (
     <WrapperContainer wrapperStyle={{ flex: 1 }}>
       <Loading visible={loading} />
@@ -663,10 +674,9 @@ const CameraGrid = (props) => {
             <Animated.View style={[styles.overlayImage, { width, height }, animatedStyle]}>
               <FastImage
                 source={{
-                  uri:
-                    provider == "google"
-                      ? ghostImage?.webContentLink
-                      : ghostImage?.publicUrl,
+                  uri: provider == "google"
+                    ? ghostImage?.webContentLink
+                    : ghostImage?.publicUrl,
                 }}
                 style={[styles.overlayImage, { width, height }, animatedStyle]}
               />

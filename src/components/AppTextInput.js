@@ -17,14 +17,14 @@ const AppTextInput = ({
     textInputStyle,
     maxLength,
     leftIconStyle,
-    editable,
+    editable=true,
     lable,
     placeHolderTxtColor = COLORS.textColor,
 }) => {
     return (
         <View>
             {lable && <Text style={styles.lableStyle}>{lable}</Text>}
-            <View style={[styles.textInputContainerStyle, inputContainerStyle]}>
+            <View style={[styles.textInputContainerStyle, inputContainerStyle, { backgroundColor: editable ? 'transparent' : '#e3e8e5' }]}>
                 <Image
                     resizeMode='contain'
                     source={leftIcon}

@@ -9,6 +9,7 @@ import {
   RefreshControl,
   TextInput,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import WrapperContainer from "../../components/WrapperContainer";
@@ -24,7 +25,7 @@ import {
 } from "../../configs/api";
 import { SwiperFlatList } from "react-native-swiper-flatlist";
 import COLORS from "../../styles/colors";
-import { moderateScale, verticalScale } from "../../styles/responsiveLayoute";
+import { height, moderateScale, verticalScale } from "../../styles/responsiveLayoute";
 import FONTS from "../../styles/fonts";
 import { navigate } from "../../navigators/NavigationService";
 import ScreenName from "../../configs/screenName";
@@ -49,7 +50,7 @@ import {
 } from "../../redux/slices/patientSlice";
 import Orientation from "react-native-orientation-locker";
 const { width } = Dimensions.get("window");
-
+import Swiper from 'react-native-swiper'
 const Home = () => {
   const dispatch = useDispatch();
   const provider = useSelector((state) => state.auth.cloudType);
@@ -185,6 +186,7 @@ const Home = () => {
     setSearchTerm(txt);
     console.log("setSearchTextAlways");
   };
+  const getScreenWidth = () => Dimensions.get('window').width;
 
   const searchPatientApi = async (txt, type = "") => {
     console.log("searchPatientApisearchPatientApi", txt);
@@ -236,12 +238,14 @@ const Home = () => {
     // Encode the URI to handle special characters
     return encodeURI(formattedUrl);
   };
+  const { width, height } = useWindowDimensions();
 
-  const renderBannerItem = ({ item }) => {
+  const renderBannerItem = (item) => {
+
     const rawUrl = `${configUrl.imageUrl}${item?.profiles[0]}`;
     const formattedUrl = formatUrl(rawUrl);
     return (
-      <View style={{ width }}>
+      <View style={{ width: width }}>
         <View style={{
           borderRadius: 10,
           borderColor: COLORS.blackColor,
@@ -252,7 +256,11 @@ const Home = () => {
           <ImageWithLoader
             uri={formattedUrl}
             resizeMode={'contain'}
-            style={styles.bannerImgStyle}
+            style={{
+              width: width * 0.8,
+              alignSelf: "center",
+              height: 250,
+            }}
           />
         </View>
       </View>
@@ -263,6 +271,7 @@ const Home = () => {
     dispatch(setCurrentPatient(item));
     navigate(ScreenName.PATIENT_DETAILS, { item });
   };
+  
   const renderItem = ({ item }) => {
     return (
       <TouchableOpacity
@@ -312,14 +321,14 @@ const Home = () => {
       </TouchableOpacity>
     );
   };
-  const navigation = useNavigation()
-  React.useEffect(() => {
-    navigation.addListener("focus", () => {
-      Orientation.unlockAllOrientations();
-      Orientation.lockToPortrait();
-    });
 
-  }, [navigation]);
+  // const navigation = useNavigation()
+  // useEffect(() => {
+  //   const unsubscribe = navigation.addListener('focus', () => {
+  //     Orientation.unlockAllOrientations();
+  //     Orientation.lockToPortrait();
+  //   });
+  // }, [navigation]);
   return (
     <WrapperContainer
       wrapperStyle={[commonStyles.innerContainer, { paddingHorizontal: 0 }]}
@@ -331,7 +340,7 @@ const Home = () => {
           navigate('SubscriptionManage', { token: token }); // Or your view plans screen
         }}
       />
-      <Loading visible={isSubscriptionLoading} />
+      <Loading visible={isSubscriptionLoading || isLoading} />
       <View style={{ paddingHorizontal: 20 }}>
         <View style={[styles.textInputContainerStyle]}>
           <Image
@@ -373,19 +382,20 @@ const Home = () => {
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 90 }}
           ListHeaderComponent={
-            <View style={styles.swiperContainer}>
-              <SwiperFlatList
-                autoplay
-                autoplayDelay={4}
-                autoplayLoop
-                showPagination
-                paginationActiveColor={COLORS.primary}
-                paginationStyle={{ bottom: verticalScale(-50) }}
-                paginationStyleItemInactive={styles.paginationInActiveStyle}
-                paginationStyleItemActive={styles.paginationActiveStyle}
-                data={banners}
-                renderItem={renderBannerItem}
-              />
+            <View style={{ height: 300 }}>
+              {
+                banners && banners.length > 0 &&
+                <Swiper
+                  dot=<View style={styles.paginationInActiveStyle} />
+                  activeDot={<View style={styles.paginationActiveStyle} />}
+                >
+                  {
+                    banners.map((item) => {
+                      return renderBannerItem(item)
+                    })
+                  }
+                </Swiper>
+              }
             </View>
           }
           ListFooterComponent={<View style={{ height: verticalScale(40) }} />}
@@ -454,14 +464,17 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.whiteColor,
     height: 6,
     width: 6,
-    borderWidth: 0.5,
+    borderRadius: 3,
+    borderWidth: 1,
     borderColor: COLORS.primary,
     marginHorizontal: 3,
   },
   paginationActiveStyle: {
     marginHorizontal: 3,
     height: 8,
+    borderRadius: 4,
     width: 8,
+    backgroundColor: COLORS.primary,
   },
   bannerImgStyle: {
     width: width * 0.8,

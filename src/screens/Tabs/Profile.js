@@ -194,7 +194,8 @@ export default Profile
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center'
+    alignItems: 'center',
+    paddingVertical:20
   },
   profileContainer: {
     justifyContent: 'center',

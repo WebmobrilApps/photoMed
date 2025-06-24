@@ -25,7 +25,6 @@ const ConnectCloud = () => {
   const navigation = useNavigation()
   React.useEffect(() => {
     navigation.addListener("focus", () => {
-      Orientation.unlockAllOrientations();
       Orientation.lockToPortrait();
     });
   }, [navigation]);

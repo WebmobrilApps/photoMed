@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
   Share,
+  useWindowDimensions,
 } from "react-native";
 import React, { useRef, useState } from "react";
 import { moderateScale, verticalScale } from "../styles/responsiveLayoute";
@@ -297,7 +298,7 @@ const ZoomSwiper = (props) => {
       console.error("Failed to delete image:", error);
     }
   };
-
+  const { width, height } = useWindowDimensions();
   return (
     <View>
       <DeleteImagePopUp

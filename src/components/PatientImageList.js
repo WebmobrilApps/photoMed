@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import React, { memo, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -122,7 +123,7 @@ const PatientImageList = memo(
       return newData;
     };
 
-
+    const { width, height } = useWindowDimensions();
     return (
       <FlatList
         data={imageArr}
@@ -136,7 +137,6 @@ const PatientImageList = memo(
           return (
             <>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: 'space-between', width: "100%", }}>
-
                 <Text
                   style={{
                     color: "#000000",

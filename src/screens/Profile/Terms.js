@@ -95,7 +95,8 @@ export default Terms;
 const styles = StyleSheet.create({
   scrollContainer: {
     padding: 10,
-    paddingBottom:40
+    paddingBottom:40,
+    paddingTop:20
   },
   txtStyle: {
     fontFamily: FONTS.regular,

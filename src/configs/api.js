@@ -13,20 +13,21 @@ import { v4 as uuidv4 } from "uuid";
 import { Image as ImageResizer } from "react-native-compressor";
 import axios from 'axios';
 import { setUserSubscription } from "../redux/slices/patientSlice";
-import { BASEURL,DROPBOX_CLIENT_ID,DROPBOX_CLIENT_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,APP_STORE_SECRET } from "@env"
+import { BASEURL, DROPBOX_CLIENT_ID, DROPBOX_CLIENT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, APP_STORE_SECRET } from "@env"
+import Config from 'react-native-config';
 
 export const configUrl = {
   imageUrl: "http://52.22.241.165:10049/",
-  BASE_URL: BASEURL,
+  BASE_URL: BASEURL || Config.BASEURL,
   defaultUser: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
-  DROPBOX_CLIENT_ID: DROPBOX_CLIENT_ID,
-  DROPBOX_CLIENT_SECRET: DROPBOX_CLIENT_SECRET,
-  GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET,
-  APP_STORE_SECRET: APP_STORE_SECRET
+  DROPBOX_CLIENT_ID: DROPBOX_CLIENT_ID || Config.DROPBOX_CLIENT_ID,
+  DROPBOX_CLIENT_SECRET: DROPBOX_CLIENT_SECRET || Config.DROPBOX_CLIENT_SECRET,
+  GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID || Config.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET || Config.GOOGLE_CLIENT_SECRET,
+  APP_STORE_SECRET: APP_STORE_SECRET || Config.APP_STORE_SECRET
 };
 
-const BASE_URL = "https://www.googleapis.com/drive/v3";
+const GOOGLE_BASE_URL = "https://www.googleapis.com/drive/v3";
 
 export async function getFolderId(
   folderName,
@@ -862,7 +863,7 @@ export async function copyFileToCategoryFolder(
   categoryName,
   copy_image_name
 ) {
-  const copyUrl = `${BASE_URL}/files/${fileId}/copy`;
+  const copyUrl = `${GOOGLE_BASE_URL}/files/${fileId}/copy`;
   const fileMetadata = {
     name: `${copy_image_name}`,
     parents: [categoryFolderId],
@@ -890,7 +891,7 @@ export async function copyFileToCategoryFolder(
 }
 
 async function getFileProperties(fileId, accessToken) {
-  const fileUrl = `${BASE_URL}/files/${fileId}?fields=appProperties`;
+  const fileUrl = `${GOOGLE_BASE_URL}/files/${fileId}?fields=appProperties`;
   const response = await fetch(fileUrl, {
     method: "GET",
     headers: {
@@ -945,7 +946,7 @@ export async function checkIfFileExistsInFolder(
   categoryFolderId,
   accessToken
 ) {
-  const searchUrl = `${BASE_URL}/files?q='${categoryFolderId}' in parents and trashed=false&fields=files(id,name,appProperties)`;
+  const searchUrl = `${GOOGLE_BASE_URL}/files?q='${categoryFolderId}' in parents and trashed=false&fields=files(id,name,appProperties)`;
 
   const searchResponse = await fetch(searchUrl, {
     method: "GET",
@@ -977,7 +978,7 @@ export async function createOrGetCategoryFolder(
   accessToken
 ) {
   // Check for existing folder
-  const searchUrl = `${BASE_URL}/files?q=name='${categoryName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,appProperties)`;
+  const searchUrl = `${GOOGLE_BASE_URL}/files?q=name='${categoryName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,appProperties)`;
 
   try {
     const searchResponse = await fetch(searchUrl, {
@@ -995,7 +996,7 @@ export async function createOrGetCategoryFolder(
     }
 
     // Create new folder if not found
-    const createFolderUrl = `${BASE_URL}/files`;
+    const createFolderUrl = `${GOOGLE_BASE_URL}/files`;
     const folderMetadata = {
       name: categoryName,
       mimeType: "application/vnd.google-apps.folder",
@@ -1265,11 +1266,10 @@ export async function copyImageToAllImagesFolder({
   }
 }
 
-const GDRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 
 // Helper to fetch Google Drive API
 async function fetchGoogleDriveAPI(endpoint, method, accessToken, body = null) {
-  const response = await fetch(`${GDRIVE_API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${GOOGLE_BASE_URL}${endpoint}`, {
     method,
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -1433,10 +1433,8 @@ export async function addSubscriptions(token, data1) {
 
 export const validateSubscription = async (token) => {
 
-  console.log("BASEUR", BASEURL + 'validate-receipt' + token)
-
   try {
-    const response = await fetch(BASEURL + 'validate-receipt', {
+    const response = await fetch(configUrl.BASE_URL + 'validate-receipt', {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -1458,7 +1456,7 @@ export const validateSubscription1 = async (token, receipt, platform = Platform.
   console.log('tokentoken', token);
 
   try {
-    const response = await fetch(BASEURL + 'validate-receipt1', {
+    const response = await fetch(configUrl.BASE_URL + 'validate-receipt1', {
       method: "PUT",
       headers: {
         'Content-Type': 'application/json',

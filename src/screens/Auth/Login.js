@@ -25,7 +25,6 @@ import { getData } from '../../configs/helperFunction';
 import { configUrl } from '../../configs/api';
 import { appleAuth, AppleButton } from '@invertase/react-native-apple-authentication';
 import { jwtDecode } from 'jwt-decode';
-import { GOOGLE_CLIENT_ID } from "@env"
 import Orientation from 'react-native-orientation-locker';
 
 
@@ -34,7 +33,6 @@ const Login = () => {
     const navigation = useNavigation()
     React.useEffect(() => {
         navigation.addListener("focus", () => {
-            Orientation.unlockAllOrientations();
             Orientation.lockToPortrait();
         });
     }, [navigation]);
@@ -43,7 +41,7 @@ const Login = () => {
     const [socialLogin, { isLoading: loading, isSuccess, error }] = useSocialLoginMutation();
 
     GoogleSignin.configure({
-        webClientId: GOOGLE_CLIENT_ID,
+        webClientId: configUrl.GOOGLE_CLIENT_ID,
         offlineAccess: false,
         scopes: [
             "email",

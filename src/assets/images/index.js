@@ -29,6 +29,7 @@ const imagePaths = {
     body_slight_left: require('./body/body_slight_left.png'),
     left_icon: require('./left_icon.png'),
     right_icon: require('./right_arrow.png'),
+    nointernet: require('./nointernet.png'),
 
    
 

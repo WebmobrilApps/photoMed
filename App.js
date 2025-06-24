@@ -9,16 +9,28 @@ import {
   requestUserPermission,
 } from "./src/configs/PushNotification";
 import { checkForUpdates } from './src/configs/helperFunction';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { decode as atob } from 'base-64';
-import { useGetUserProfileQuery } from './src/redux/api/common';
 import Orientation from 'react-native-orientation-locker';
-import { useNavigation } from '@react-navigation/native';
 
 if (!global.atob) {
   global.atob = atob;
 }
+
 const App = () => {
+
+
+  useEffect(() => {
+    Orientation.lockToPortrait();
+  }, []);
+
+  // const navigation = useNavigation()
+  // React.useEffect(() => {
+  //   const unsubscribe = navigation.addListener('focus', () => {
+  //     Orientation.unlockAllOrientations()
+  //     Orientation.lockToPortrait();
+  //   });
+  //   return unsubscribe
+  // }, []);
 
 
 

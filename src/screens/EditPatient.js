@@ -279,10 +279,7 @@ const EditPatient = (props) => {
                     <AppTextInput
                         maxLength={20}
                         label={'Name'}
-                        editable={
-                            !imageCount ||
-                                imageCount === '0' ? true : false
-                        }
+                        editable={false}
                         placeHolderTxtColor={COLORS.placeHolderTxtColor}
                         placeholder={'Enter name'}
                         value={name}

@@ -1,18 +1,27 @@
+import { createNavigationContainerRef } from '@react-navigation/native';
 import * as React from 'react';
 
-export const navigationRef = React.createRef();
+export const navigationRef = createNavigationContainerRef();
 
 export function navigate(name, params) {
-  navigationRef.current.navigate(name, params);
+  if (navigationRef.isReady()) {
+    navigationRef.navigate(name, params);
+  }
 }
 
 export function goBack() {
-  navigationRef.current.goBack();
+  if (navigationRef.isReady() && navigationRef.canGoBack()) {
+    navigationRef.goBack();
+  }
 }
 
-export function reset(name, index) {
-  navigationRef.current.reset({
-    index: index,
-    routes: [{name: name}],
-  });
+export function reset(name, params = {}) {
+  if (navigationRef.isReady()) {
+    navigationRef.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name, params }],
+      })
+    );
+  }
 }
